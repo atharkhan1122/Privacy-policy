@@ -183,6 +183,8 @@ export interface IntakeMessage {
   extraction?: IntakeExtraction;
   status: "NEW" | "PARSED" | "CONVERTED" | "REJECTED";
   shipmentId?: string;
+  /** Which engine produced the extraction: the live LLM or the local parser. */
+  parsedBy?: string;
 }
 
 // ─── The Agent ───────────────────────────────────────────────────────────────

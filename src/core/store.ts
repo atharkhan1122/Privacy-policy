@@ -157,14 +157,69 @@ export function recentEvents(limit = 40): ShipmentEvent[] {
 // ─── Commands (all mutation flows through domain functions) ─────────────────
 
 let shipmentSeq = 848;
+let intakeSeq = 100;
 
-/** AI intake: parse a raw message into structured fields. */
+/** Feed the engine a new raw message — the live intake composer's command. */
+export function submitIntake(params: {
+  channel: IntakeMessage["channel"];
+  from: string;
+  raw: string;
+}): IntakeMessage {
+  const msg: IntakeMessage = {
+    id: `in-${++intakeSeq}`,
+    channel: params.channel,
+    from: params.from,
+    receivedAt: new Date().toISOString(),
+    raw: params.raw,
+    status: "NEW",
+  };
+  world.intake.unshift(msg);
+  // No event: nothing exists to link to yet. The priority queue picks up NEW
+  // intake on its own, which is the correct surface for "unanswered inquiry".
+  notify();
+  return msg;
+}
+
+/** AI intake: parse a raw message into structured fields (local parser). */
 export function parseIntake(messageId: string): void {
   const msg = world.intake.find((m) => m.id === messageId);
   if (!msg || msg.status !== "NEW") return;
   msg.extraction = extract(msg);
   msg.status = "PARSED";
+  msg.parsedBy = "local parser";
   notify();
+}
+
+/**
+ * LLM-first parse: try the Claude-backed /api/extract route, fall back to the
+ * deterministic parser when no credentials are configured or the call fails.
+ * Same IntakeExtraction shape either way — consumers don't care which ran.
+ */
+export async function parseIntakeSmart(messageId: string): Promise<void> {
+  const msg = world.intake.find((m) => m.id === messageId);
+  if (!msg || msg.status !== "NEW") return;
+  try {
+    const res = await fetch("/api/extract", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ raw: msg.raw, from: msg.from }),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as {
+        extraction: NonNullable<IntakeMessage["extraction"]>;
+        engine: string;
+      };
+      if (msg.status !== "NEW") return; // parsed by something else meanwhile
+      msg.extraction = data.extraction;
+      msg.status = "PARSED";
+      msg.parsedBy = data.engine;
+      notify();
+      return;
+    }
+  } catch {
+    // network/route failure — fall through to the local parser
+  }
+  parseIntake(messageId);
 }
 
 /** Convert a parsed intake message into a live shipment in INQUIRY state. */

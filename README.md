@@ -33,7 +33,11 @@ always feels live.
 
 1. **Intake** (`gi`) — two raw messages are waiting: a WhatsApp voice-note transcript
    and a forwarded email chain. Hit **Parse with AI** to see per-field extraction with
-   confidence, then **Convert → shipment**.
+   confidence, then **Convert → shipment**. Or type your own inquiry into the **live
+   composer** at the top and send it into the engine. With `ANTHROPIC_API_KEY` set,
+   parsing runs through Claude (`claude-opus-4-8`, structured outputs via
+   `/api/extract`); without it, the deterministic parser takes over — same shape, same
+   flow, and the extraction panel shows which engine ran.
 2. **Shipment** — open the new object. It's in *Inquiry*. Hit **Run quote engine**:
    rate memory + surcharge resolver + margin brain price it in under a second, with a
    win-probability per option.
@@ -65,6 +69,7 @@ rank.
 | The Shipment + lifecycle | `src/core/types.ts`, `state-machine.ts` | The single source of truth; seven states; transitions emit events |
 | Event bus | `src/core/events.ts` | Typed pub/sub every module listens to |
 | AI Intake Engine | `src/core/intake.ts` | Messy text → structured cargo with per-field confidence |
+| Claude-backed extraction | `src/app/api/extract/route.ts` | Same extraction via `claude-opus-4-8` structured outputs; auto-fallback to the local parser when no key is set |
 | AI Quote Engine | `src/core/quote-engine.ts` | Rate memory, 7-rule surcharge resolver, margin brain, win/loss learning loop |
 | AI Logistics Agent | `src/core/agent.ts` | 4-notch autonomy dial per task type, value ceilings, confidence floors, escalation |
 | Predictive ETA / delay | `src/core/trade-graph.ts` | Risk scoring from lane congestion, customs drag, carrier performance |
