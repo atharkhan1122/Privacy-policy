@@ -20,7 +20,17 @@ interface — swap the JSON file for Postgres and nothing above the
 persistence adapter changes. The browser demo world remains in-memory.
 
 Base URL: wherever the Next.js app runs (`http://localhost:3000` in dev).
-All bodies are JSON. Errors return `{ "error": string }` with 400/404/501.
+All bodies are JSON. Errors return `{ "error": string }` with 400/401/404/501.
+
+## Authentication
+
+| Env var | Effect |
+|---|---|
+| `ENGINE_ROOM_API_KEYS` | Comma-separated API keys (convention `erk_…`). When set, every `/api` route requires one via `x-api-key: <key>` or `Authorization: Bearer <key>` (constant-time compared). Unset = open demo mode. |
+| `ENGINE_ROOM_WHATSAPP_SECRET` | Meta app secret. When set, webhook deliveries must carry a valid `X-Hub-Signature-256` HMAC of the raw body. Unset = open demo mode. |
+
+The webhook route is exempt from the API-key check (Meta cannot send custom
+headers) — the HMAC signature is its authentication.
 
 ## The shipment (read)
 

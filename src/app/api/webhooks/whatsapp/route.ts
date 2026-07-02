@@ -1,5 +1,7 @@
+import { NextResponse } from "next/server";
 import { badRequest, ensureWorld, ok } from "@/server/api";
 import { submitIntake } from "@/core/store";
+import { verifySignature } from "@/server/webhook-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +15,13 @@ export const dynamic = "force-dynamic";
  *
  * GET implements the hub.challenge verification handshake Meta performs when
  * the webhook URL is registered.
+ *
+ * Authentication: Meta signs every delivery with the app secret
+ * (X-Hub-Signature-256: sha256=<hmac-sha256 of the raw body>). When
+ * ENGINE_ROOM_WHATSAPP_SECRET is set, deliveries must carry a valid
+ * signature (src/server/webhook-auth.ts); unset, the webhook is open (demo
+ * mode). This route is exempt from the API-key middleware because Meta
+ * cannot send custom headers.
  */
 
 interface WhatsAppWebhook {
@@ -44,9 +53,19 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   ensureWorld();
+  const rawBody = await request.text();
+
+  const secret = process.env.ENGINE_ROOM_WHATSAPP_SECRET;
+  if (secret) {
+    const signature = request.headers.get("x-hub-signature-256");
+    if (!verifySignature(rawBody, signature, secret)) {
+      return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
+    }
+  }
+
   let payload: WhatsAppWebhook;
   try {
-    payload = (await request.json()) as WhatsAppWebhook;
+    payload = JSON.parse(rawBody) as WhatsAppWebhook;
   } catch {
     return badRequest("Invalid JSON body");
   }
