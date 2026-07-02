@@ -27,6 +27,7 @@ export function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   if (path.startsWith("/api/webhooks/")) return NextResponse.next(); // HMAC-authenticated
+  if (path === "/api/health") return NextResponse.next(); // liveness probes carry no key
 
   const presented = presentedKey(request.headers);
   if (presented && entries.some((entry) => safeEqual(entry.key, presented))) {

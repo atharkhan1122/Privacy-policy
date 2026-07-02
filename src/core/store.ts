@@ -143,10 +143,11 @@ export interface StoreSnapshot {
   world: World;
   shipmentSeq: number;
   intakeSeq: number;
+  trackingSeq?: number;
 }
 
 export function storeSnapshot(): StoreSnapshot {
-  return { world, shipmentSeq, intakeSeq };
+  return { world, shipmentSeq, intakeSeq, trackingSeq };
 }
 
 export function restoreStore(snapshot: StoreSnapshot): void {
@@ -161,6 +162,7 @@ export function restoreStore(snapshot: StoreSnapshot): void {
   world.booted = true; // restored state supersedes seeding
   shipmentSeq = snapshot.shipmentSeq;
   intakeSeq = snapshot.intakeSeq;
+  trackingSeq = snapshot.trackingSeq ?? 100; // tolerate pre-tracking snapshots
   notify();
 }
 
@@ -367,6 +369,54 @@ export function advanceShipment(shipmentId: string): void {
     emit("customs.cleared", s.id, "Customs entry pre-filed from document set", "INFO");
   }
   notify();
+}
+
+let trackingSeq = 100;
+
+/**
+ * Inbound tracking ingestion — the carrier/EDI side of the control tower.
+ * An exception flags the shipment (blocking advance), re-scores the ETA, and
+ * wakes the agent with a recovery proposal before the customer ever asks.
+ */
+export function ingestTracking(params: {
+  shipmentId: string;
+  location: string;
+  description: string;
+  isException?: boolean;
+  at?: string;
+}): TrackingEvent | undefined {
+  const shipment = shipmentById(params.shipmentId);
+  if (!shipment) return undefined;
+  const tracking: TrackingEvent = {
+    id: `trk-${++trackingSeq}`,
+    shipmentId: shipment.id,
+    at: params.at ?? new Date().toISOString(),
+    location: params.location,
+    description: params.description,
+    isException: Boolean(params.isException),
+  };
+  world.tracking.push(tracking);
+  emit(
+    tracking.isException ? "tracking.exception" : "tracking.updated",
+    shipment.id,
+    `${tracking.location} — ${tracking.description}`,
+    tracking.isException ? "CRITICAL" : "INFO",
+    params.at
+  );
+  if (tracking.isException) {
+    shipment.hasOpenException = true;
+    if (shipment.neededBy) shipment.eta = predictEta(shipment, shipment.neededBy);
+    propose({
+      shipment,
+      taskType: "EXCEPTION_HANDLING",
+      summary: `Recovery plan needed on ${shipment.id}: ${tracking.description}`,
+      detail: `Exception reported at ${tracking.location}. Delay risk now ${((shipment.eta?.delayRisk ?? 0) * 100).toFixed(0)}%. Recovery options drafted for review.`,
+      confidence: 0.82,
+      valueAtStake: shipment.revenue,
+    });
+  }
+  notify();
+  return tracking;
 }
 
 export function resolveException(shipmentId: string): void {

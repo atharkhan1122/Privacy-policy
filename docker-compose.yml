@@ -1,0 +1,19 @@
+services:
+  engine-room:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - engine-data:/data
+    environment:
+      # Uncomment to lock the API plane and split it into tenant worlds:
+      # ENGINE_ROOM_API_KEYS: "erk_meridian_1:meridian,erk_horizon_2:horizon"
+      # Uncomment to require signed WhatsApp deliveries:
+      # ENGINE_ROOM_WHATSAPP_SECRET: "your-meta-app-secret"
+      # Uncomment to run intake extraction through Claude:
+      # ANTHROPIC_API_KEY: "sk-ant-..."
+      ENGINE_ROOM_PERSIST: "1"
+    restart: unless-stopped
+
+volumes:
+  engine-data:

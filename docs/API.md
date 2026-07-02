@@ -62,6 +62,7 @@ replaces the swap with row-level security (ARCHITECTURE.md § 4).
 | GET | `/api/quotes` | Every quote on the wire |
 | GET | `/api/intake` | The raw inbox |
 | GET | `/api/graph` | Trade intelligence: lane aggregates (already privacy-floored) + carrier scorecards |
+| GET | `/api/health` | Liveness for load balancers / k8s probes — unauthenticated, reveals nothing tenant-scoped |
 
 ## Commands (write)
 
@@ -73,6 +74,8 @@ replaces the swap with row-level security (ARCHITECTURE.md § 4).
 | POST | `/api/shipments/:id/quote` | — | Run the quote engine (201, returns the quote) |
 | POST | `/api/quotes/:id/accept` | `{optionId}` | The customer's tap: books the carrier, generates documents, issues the invoice, engages the ETA model — one command, four modules |
 | POST | `/api/shipments/:id/advance` | — | One lifecycle transition forward (400 if an exception blocks it or the state is terminal) |
+| POST | `/api/shipments/:id/tracking` | `{location, description, isException?, at?}` | Inbound carrier/EDI tracking. An exception flags the shipment (blocking advance), re-scores the ETA, and queues an agent recovery proposal (201) |
+| POST | `/api/shipments/:id/resolve-exception` | — | Recovery executed — unblock the shipment |
 | POST | `/api/night-shift` | — | Run the 8-hour autonomous shift; returns the minute-stamped shift report |
 | POST | `/api/extract` | `{raw, from}` | Standalone Claude extraction (501 without credentials — callers fall back to the local parser) |
 

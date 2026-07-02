@@ -24,6 +24,16 @@ npm run typecheck
 npm test           # domain-core test suite (Vitest)
 ```
 
+Or deploy it:
+
+```bash
+docker compose up --build   # standalone build, durable world on the engine-data volume
+```
+
+Configure via environment: `ENGINE_ROOM_API_KEYS` (auth + one isolated tenant
+world per key), `ENGINE_ROOM_WHATSAPP_SECRET` (signed webhooks),
+`ANTHROPIC_API_KEY` (Claude-backed intake). `/api/health` serves k8s probes.
+
 The app boots into a seeded world: a mid-sized Gulf forwarder ("Meridian Cargo LLC,
 Dubai") six months into running on the platform, with a live fleet, an intake inbox,
 an agent mid-shift and money moving. Timestamps are relative to boot, so the terminal
