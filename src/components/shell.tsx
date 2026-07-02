@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Mono } from "./ui";
 import { AssistantDrawer } from "./assistant";
+import { useWorld } from "@/core/store";
 
 const NAV: { href: string; label: string; key: string; hint: string }[] = [
   { href: "/", label: "Control Tower", key: "t", hint: "live fleet + exceptions" },
@@ -35,13 +36,33 @@ function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void 
   const [cursor, setCursor] = useState(0);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const { world } = useWorld();
 
   const items = useMemo(() => {
     const q = query.toLowerCase();
-    return NAV.filter(
+    const nav = NAV.filter(
       (n) => n.label.toLowerCase().includes(q) || n.hint.includes(q)
-    );
-  }, [query]);
+    ).map((n) => ({ href: n.href, label: n.label, hint: n.hint }));
+    // The object itself is addressable: type an id, a customer, a commodity.
+    const shipments =
+      q.length >= 2
+        ? world.shipments
+            .filter(
+              (s) =>
+                s.id.toLowerCase().includes(q) ||
+                s.ref.toLowerCase().includes(q) ||
+                s.origin.toLowerCase().includes(q) ||
+                s.destination.toLowerCase().includes(q)
+            )
+            .slice(0, 6)
+            .map((s) => ({
+              href: `/shipments/${s.id}`,
+              label: s.id,
+              hint: `${s.ref} · ${s.state.toLowerCase()}`,
+            }))
+        : [];
+    return [...nav, ...shipments];
+  }, [query, world.shipments]);
 
   useEffect(() => {
     if (open) {

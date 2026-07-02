@@ -10,15 +10,20 @@ import {
   reject,
   setAutonomyLevel,
 } from "@/core/agent";
-import { forceNotify, useWorld } from "@/core/store";
+import { forceNotify, runNightShift, useWorld } from "@/core/store";
 import { Btn, Mono, Panel, timeAgo, usd } from "@/components/ui";
 import type { AutonomyLevel } from "@/core/types";
 
+function shiftTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
+
 export default function AgentPage() {
-  useWorld(); // subscribe for re-render on any event
+  const { world } = useWorld(); // subscribe for re-render on any event
   const grants = autonomyGrants();
   const actions = agentActions();
   const queue = actions.filter((a) => a.status === "AWAITING_APPROVAL" || a.status === "ESCALATED");
+  const shift = world.lastShift;
 
   return (
     <div className="space-y-5">
@@ -91,6 +96,58 @@ export default function AgentPage() {
           the agent always hands to a human with full context — the best agents are famous for
           what they refuse to do alone.
         </div>
+      </Panel>
+
+      {/* The night shift */}
+      <Panel
+        title="The night shift — Deck 06, executable"
+        fig="FIG.1b"
+        actions={
+          <Btn tone="magenta" onClick={() => runNightShift()}>
+            ▶ Run 8h autonomous shift
+          </Btn>
+        }
+      >
+        {!shift ? (
+          <div className="px-4 py-5 text-xs text-foam-soft">
+            Go to sleep. The machine parses the inbox, prices, books inside its ceilings, holds
+            everything bigger for one tap at 07:00 — then files this report. Press run to watch
+            eight hours pass.
+          </div>
+        ) : (
+          <div>
+            <div className="grid grid-cols-2 gap-px border-b border-line bg-line md:grid-cols-6">
+              {[
+                ["Intake parsed", String(shift.intakeParsed)],
+                ["Quotes sent", String(shift.quotesSent)],
+                ["Bookings", `${shift.bookingsMade} · ${usd(shift.revenueBooked)}`],
+                ["Updates sent", String(shift.updatesSent)],
+                ["Queued for 07:00", String(shift.queuedForMorning)],
+                ["Hours eliminated", `${shift.hoursEliminated}h`],
+              ].map(([k, v]) => (
+                <div key={k} className="bg-hull px-3 py-2.5">
+                  <Mono className="text-foam-soft">{k}</Mono>
+                  <div className="mt-0.5 font-mono text-lg tabular-nums text-instr">{v}</div>
+                </div>
+              ))}
+            </div>
+            <div className="max-h-72 overflow-y-auto font-mono text-[11px]">
+              {shift.log.map((entry, i) => (
+                <div
+                  key={i}
+                  className={`flex gap-3 border-b border-line-soft px-4 py-2 last:border-0 ${
+                    entry.kind === "HUMAN_QUEUED" ? "bg-magenta-ink/10" : ""
+                  }`}
+                >
+                  <span className={`whitespace-nowrap tabular-nums ${entry.kind === "HUMAN_QUEUED" ? "text-magenta" : "text-instr/70"}`}>
+                    {shiftTime(entry.at)}
+                  </span>
+                  <span className={entry.kind === "INFO" ? "text-foam" : "text-foam-soft"}>{entry.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </Panel>
 
       {/* Approval queue */}

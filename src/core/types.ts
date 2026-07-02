@@ -288,6 +288,28 @@ export interface ShipmentEvent {
   severity: "INFO" | "SUCCESS" | "WARNING" | "CRITICAL";
 }
 
+// ─── The night shift ─────────────────────────────────────────────────────────
+
+export interface ShiftLogEntry {
+  at: string;
+  text: string;
+  kind: "AUTO" | "HUMAN_QUEUED" | "INFO";
+}
+
+export interface ShiftReport {
+  ranAt: string;
+  windowHours: number;
+  intakeParsed: number;
+  quotesSent: number;
+  bookingsMade: number;
+  revenueBooked: number;
+  docsGenerated: number;
+  updatesSent: number;
+  queuedForMorning: number;
+  hoursEliminated: number;
+  log: ShiftLogEntry[];
+}
+
 // ─── THE SHIPMENT ────────────────────────────────────────────────────────────
 
 export interface Shipment {

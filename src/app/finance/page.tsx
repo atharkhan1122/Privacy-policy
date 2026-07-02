@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { customerById, customers, useWorld } from "@/core/store";
 import { receivablesAging, marginPct } from "@/core/finance";
+import { revenueForecast } from "@/core/forecast";
 import { Bar, Mono, Panel, StatTile, timeAgo, timeIn, usd } from "@/components/ui";
 
 export default function FinancePage() {
@@ -39,6 +40,40 @@ export default function FinancePage() {
           detail={`${financeable.length} offers out`}
         />
       </div>
+
+      {/* Revenue forecast */}
+      <Panel title="Revenue forecast — every dollar carries its probability" fig="FIG.0">
+        {(() => {
+          const f = revenueForecast(world.shipments, world.quotes);
+          const rows: [string, number, string, "instr" | "brass" | "magenta"][] = [
+            ["Booked", f.booked, "revenue on shipments, all states", "magenta"],
+            ["Weighted quotes", f.weightedQuotes, "pending quotes × win probability", "instr"],
+            ["Inquiry estimate", f.inquiryEstimate, "unquoted inquiries × house win rate", "brass"],
+          ];
+          const max = Math.max(f.booked, f.weightedQuotes, f.inquiryEstimate, 1);
+          return (
+            <div className="px-4 py-3">
+              {rows.map(([label, value, why, tone]) => (
+                <div key={label} className="mb-3 last:mb-0">
+                  <div className="flex justify-between text-xs">
+                    <Mono className="text-foam-soft">{label}</Mono>
+                    <span className="font-mono tabular-nums text-foam">
+                      {usd(value)} <span className="text-foam-soft/60">· {why}</span>
+                    </span>
+                  </div>
+                  <div className="mt-1">
+                    <Bar pct={(value / max) * 100} tone={tone} />
+                  </div>
+                </div>
+              ))}
+              <div className="mt-3 flex justify-between border-t border-line pt-2.5">
+                <Mono className="text-instr">Expected total</Mono>
+                <span className="font-mono text-lg tabular-nums text-instr">{usd(f.expected)}</span>
+              </div>
+            </div>
+          );
+        })()}
+      </Panel>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Receivables aging" fig="FIG.1">

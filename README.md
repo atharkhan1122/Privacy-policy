@@ -42,7 +42,10 @@ always feels live.
    because they're all the same object.
 4. **Agent** (`ga`) — the trust dial per task type, the approval queue (one tap, full
    context), and the shift report. Set quoting to notch 4 and watch new quotes execute
-   without you.
+   without you. Then press **▶ Run 8h autonomous shift**: the night shift parses the
+   inbox, prices, books inside its ceilings, holds the big booking for 07:00, sends
+   delay advisories before customers ask, drafts collections — and files a
+   minute-stamped report of the hours it just eliminated.
 5. **Portal** (`gp`) — the same shipment, seen from the customer's side.
 
 Keyboard-first: `⌘K` command deck, `⌘J` **Ask the Engine** (conversational assistant
@@ -68,6 +71,8 @@ rank.
 | Trade Intelligence Graph | `src/core/trade-graph.ts` | Lane aggregates with a minimum-density privacy floor (the covenant, in code) |
 | Document Intelligence | `src/core/documents.ts` | Auto-generation from the object + cross-document validation |
 | Financial Layer | `src/core/finance.ts` | Invoices, receivables aging, credit terms, financing offers, margin analytics |
+| The Night Shift | `src/core/store.ts` (`runNightShift`) | 8h autonomous run composed of the same domain commands a human clicks, with a shift report |
+| Revenue forecasting | `src/core/forecast.ts` | Booked + probability-weighted quotes + inquiry estimate |
 | Escalation engine / prioritization | `src/core/priority.ts` | One ranked queue of everything needing a human, self-explaining scores |
 | Conversational assistant | `src/core/assistant.ts` | Grounded Q&A over the world state (⌘J), production seam for tool-calling LLM |
 | Control Tower & 8 more views | `src/app/**` | Every screen is a query over the same store |

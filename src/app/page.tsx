@@ -43,7 +43,13 @@ export default function ControlTower() {
         </h1>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+        <StatTile
+          label="Hours eliminated"
+          value={world.hoursEliminated.toLocaleString()}
+          detail="human work automated, all-time"
+          tone="instr"
+        />
         <StatTile label="Active shipments" value={String(active.length)} detail="pre-settlement" />
         <StatTile label="In flight" value={String(inTransit.length)} detail="transit + customs" tone="instr" />
         <StatTile
