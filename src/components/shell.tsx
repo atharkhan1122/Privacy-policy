@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Mono } from "./ui";
+import { AssistantDrawer } from "./assistant";
 
 const NAV: { href: string; label: string; key: string; hint: string }[] = [
   { href: "/", label: "Control Tower", key: "t", hint: "live fleet + exceptions" },
@@ -109,6 +110,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const pendingG = useRef(false);
 
   const onKey = useCallback(
@@ -118,6 +120,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setPaletteOpen((o) => !o);
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        setAssistantOpen((o) => !o);
         return;
       }
       // g-then-key chord navigation
@@ -185,12 +192,21 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <span className="live-dot inline-block h-2 w-2 rounded-full bg-instr" />
             <Mono className="text-foam-soft">All systems nominal · event bus live</Mono>
           </div>
-          <Clock />
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setAssistantOpen((o) => !o)}
+              className="border border-instr/40 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-instr hover:bg-instr/10"
+            >
+              ◈ Ask the Engine · ⌘J
+            </button>
+            <Clock />
+          </div>
         </header>
         <main className="px-6 py-6">{children}</main>
       </div>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <AssistantDrawer open={assistantOpen} onClose={() => setAssistantOpen(false)} />
     </div>
   );
 }

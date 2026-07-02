@@ -2,8 +2,19 @@
 
 import Link from "next/link";
 import { recentEvents, useWorld, resolveException } from "@/core/store";
+import { agentActions } from "@/core/agent";
+import { priorityQueue, type TaskKind } from "@/core/priority";
 import { Bar, Btn, Mono, Panel, StatTile, StateChip, timeAgo, timeIn, usd } from "@/components/ui";
 import type { ShipmentEvent } from "@/core/types";
+
+const KIND_TONE: Record<TaskKind, string> = {
+  APPROVAL: "text-brass",
+  EXCEPTION: "text-danger",
+  DOCUMENT: "text-brass",
+  COLLECTION: "text-magenta",
+  QUOTE_EXPIRING: "text-instr",
+  INTAKE: "text-foam-soft",
+};
 
 const SEVERITY_TONE: Record<ShipmentEvent["severity"], string> = {
   INFO: "text-foam-soft",
@@ -49,6 +60,49 @@ export default function ControlTower() {
           tone={newIntake ? "brass" : "foam"}
         />
       </div>
+
+      {/* Priority queue — the escalation engine's answer to "what now?" */}
+      <Panel
+        title="What needs a human — ranked"
+        fig="FIG.0"
+        actions={<Mono className="text-foam-soft">smart prioritization · re-scored live</Mono>}
+      >
+        {(() => {
+          const queue = priorityQueue({
+            shipments: world.shipments,
+            invoices: world.invoices,
+            quotes: world.quotes,
+            intake: world.intake,
+            documents: world.documents,
+            actions: agentActions(),
+          }).slice(0, 6);
+          if (queue.length === 0)
+            return (
+              <div className="px-4 py-5 text-xs text-foam-soft">
+                Queue is empty. The machine is running the shift alone.
+              </div>
+            );
+          return queue.map((t, i) => (
+            <Link
+              key={t.id}
+              href={t.href}
+              className="flex items-center gap-4 border-b border-line-soft px-4 py-2.5 last:border-0 hover:bg-panel"
+            >
+              <span className="font-mono text-lg tabular-nums text-foam-soft/50">{i + 1}</span>
+              <span className={`w-24 shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] ${KIND_TONE[t.kind]}`}>
+                {t.kind.replace(/_/g, " ")}
+              </span>
+              <span className="flex-1 text-xs">
+                <span className="text-foam">{t.title}</span>
+                <span className="ml-2 text-foam-soft/70">{t.why}</span>
+              </span>
+              <span className="w-16 shrink-0">
+                <Bar pct={t.score} tone={t.score >= 80 ? "danger" : t.score >= 65 ? "brass" : "instr"} />
+              </span>
+            </Link>
+          ));
+        })()}
+      </Panel>
 
       <div className="grid gap-4 xl:grid-cols-5">
         {/* Fleet */}

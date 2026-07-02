@@ -21,6 +21,7 @@ npm install
 npm run dev        # http://localhost:3000
 npm run build      # production build
 npm run typecheck
+npm test           # domain-core test suite (Vitest)
 ```
 
 The app boots into a seeded world: a mid-sized Gulf forwarder ("Meridian Cargo LLC,
@@ -44,8 +45,15 @@ always feels live.
    without you.
 5. **Portal** (`gp`) — the same shipment, seen from the customer's side.
 
-Keyboard-first: `⌘K` command deck, `g` + key chord navigation (`gt` tower, `gs`
+Keyboard-first: `⌘K` command deck, `⌘J` **Ask the Engine** (conversational assistant
+answering from the live shipment graph — try "what's stuck", "what's overdue", a
+shipment id, or a customer name), `g` + key chord navigation (`gt` tower, `gs`
 shipments, `gq` quotes…).
+
+The Control Tower opens with **"What needs a human — ranked"**: the escalation
+engine scores every agent hand-off, stuck shipment, document error, overdue invoice,
+expiring quote and unparsed inquiry into one queue, each entry arguing for its own
+rank.
 
 ## What's real in this codebase
 
@@ -60,7 +68,13 @@ shipments, `gq` quotes…).
 | Trade Intelligence Graph | `src/core/trade-graph.ts` | Lane aggregates with a minimum-density privacy floor (the covenant, in code) |
 | Document Intelligence | `src/core/documents.ts` | Auto-generation from the object + cross-document validation |
 | Financial Layer | `src/core/finance.ts` | Invoices, receivables aging, credit terms, financing offers, margin analytics |
+| Escalation engine / prioritization | `src/core/priority.ts` | One ranked queue of everything needing a human, self-explaining scores |
+| Conversational assistant | `src/core/assistant.ts` | Grounded Q&A over the world state (⌘J), production seam for tool-calling LLM |
 | Control Tower & 8 more views | `src/app/**` | Every screen is a query over the same store |
+
+The domain core is covered by a Vitest suite (`src/core/*.test.ts` — lifecycle,
+intake extraction, pricing & surcharges, agent autonomy policy, finance, graph
+privacy floor, priority scoring, assistant grounding), run in CI on every push.
 
 The AI seams are deliberate: `intake.extract()`, the margin brain, and ETA scoring are
 deterministic implementations behind the exact interfaces an LLM/RAG stack plugs into.
