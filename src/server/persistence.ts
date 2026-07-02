@@ -17,6 +17,8 @@ import {
 import { graphSnapshot, restoreGraph } from "@/core/trade-graph";
 import { documentSeq, restoreDocumentSeq } from "@/core/documents";
 import { invoiceSeq, restoreInvoiceSeq } from "@/core/finance";
+import { parseApiKeys, presentedKey } from "@/server/api-keys";
+import { safeEqual } from "@/server/safe-equal";
 
 /**
  * Durable world — file-backed persistence for the API plane's server-side
@@ -48,19 +50,61 @@ interface WorldSnapshotFile {
   invoiceSeq: number;
 }
 
-export function dataFile(): string {
-  return process.env.ENGINE_ROOM_DATA ?? path.join(process.cwd(), ".data", "world.json");
+// ─── Tenancy ─────────────────────────────────────────────────────────────────
+// One isolated world per API key. The active tenant's world lives in the
+// domain singletons; switching tenants persists the outgoing world and
+// restores (or geneses) the incoming one. Node's single-threaded execution
+// makes the swap safe for synchronous handlers; the one async handler
+// (Claude parse) re-activates its tenant after awaiting. In the Postgres
+// implementation tenancy is row-level and this swap disappears.
+
+let activeTenantId = "default";
+/** Pristine post-boot world, used to seed brand-new tenants. */
+let genesis: string | undefined;
+
+export function activeTenant(): string {
+  return activeTenantId;
+}
+
+/** Which tenant a request addresses — keyed by its (middleware-validated) API key. */
+export function resolveTenant(request: Request): string {
+  const entries = parseApiKeys(process.env.ENGINE_ROOM_API_KEYS);
+  if (entries.length === 0) return "default";
+  const presented = presentedKey(request.headers);
+  const entry = presented
+    ? entries.find((e) => safeEqual(e.key, presented))
+    : undefined;
+  return entry?.tenant ?? "default"; // unkeyed = webhook traffic → default world
+}
+
+/** Swap the domain singletons to the given tenant's world. */
+export function activateTenant(tenant: string): void {
+  if (tenant === activeTenantId) return;
+  try {
+    persistNow(); // save the outgoing tenant synchronously
+  } catch {
+    // never let a failed save block the incoming tenant
+  }
+  activeTenantId = tenant;
+  if (!hydrateFromDisk() && genesis) {
+    applySnapshot(JSON.parse(genesis) as WorldSnapshotFile); // fresh tenant = pristine seed
+  }
+}
+
+// ─── Snapshot I/O ────────────────────────────────────────────────────────────
+
+export function dataFile(tenant = activeTenantId): string {
+  const base = process.env.ENGINE_ROOM_DATA ?? path.join(process.cwd(), ".data", "world.json");
+  if (tenant === "default") return base;
+  return path.join(path.dirname(base), `tenant-${tenant}.json`);
 }
 
 export function persistenceEnabled(): boolean {
   return process.env.ENGINE_ROOM_PERSIST !== "0";
 }
 
-/** Write the full world snapshot atomically (tmp + rename). */
-export function persistNow(): void {
-  const file = dataFile();
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const snapshot: WorldSnapshotFile = {
+function captureSnapshot(): WorldSnapshotFile {
+  return {
     version: SNAPSHOT_VERSION,
     savedAt: new Date().toISOString(),
     store: storeSnapshot(),
@@ -71,8 +115,24 @@ export function persistNow(): void {
     documentSeq: documentSeq(),
     invoiceSeq: invoiceSeq(),
   };
+}
+
+function applySnapshot(snapshot: WorldSnapshotFile): void {
+  restoreAgent(snapshot.agent);
+  restoreEvents(snapshot.events);
+  restoreQuoteEngine(snapshot.quoteEngine);
+  restoreGraph(snapshot.graph);
+  restoreDocumentSeq(snapshot.documentSeq);
+  restoreInvoiceSeq(snapshot.invoiceSeq);
+  restoreStore(snapshot.store); // last — its notify() triggers the first save
+}
+
+/** Write the active tenant's world snapshot atomically (tmp + rename). */
+export function persistNow(): void {
+  const file = dataFile();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(snapshot));
+  fs.writeFileSync(tmp, JSON.stringify(captureSnapshot()));
   fs.renameSync(tmp, file);
 }
 
@@ -87,13 +147,7 @@ export function hydrateFromDisk(): boolean {
     return false; // corrupt snapshot — keep the seeded world rather than crash
   }
   if (snapshot.version !== SNAPSHOT_VERSION) return false;
-  restoreAgent(snapshot.agent);
-  restoreEvents(snapshot.events);
-  restoreQuoteEngine(snapshot.quoteEngine);
-  restoreGraph(snapshot.graph);
-  restoreDocumentSeq(snapshot.documentSeq);
-  restoreInvoiceSeq(snapshot.invoiceSeq);
-  restoreStore(snapshot.store); // last — its notify() triggers the first save
+  applySnapshot(snapshot);
   return true;
 }
 
@@ -107,6 +161,7 @@ export function initPersistence(): void {
   if (!persistenceEnabled() || g[globalKey]) return;
   g[globalKey] = true;
   bootWorld();
+  genesis = JSON.stringify(captureSnapshot()); // pristine seed for new tenants
   hydrateFromDisk();
   subscribeWorld(() => {
     if (saveTimer) clearTimeout(saveTimer);

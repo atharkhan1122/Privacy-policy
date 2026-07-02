@@ -5,10 +5,10 @@ export const dynamic = "force-dynamic";
 
 /** POST /api/shipments/:id/quote — run the quote engine. */
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureWorld();
+  ensureWorld(request);
   const { id } = await params;
   if (!shipmentById(id)) return notFound(`Unknown shipment ${id}`);
   const quote = quoteShipment(id);

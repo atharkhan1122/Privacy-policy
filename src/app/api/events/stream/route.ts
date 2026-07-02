@@ -1,5 +1,6 @@
 import { ensureWorld } from "@/server/api";
 import { eventHistory, subscribe } from "@/core/events";
+import { activeTenant, resolveTenant } from "@/server/persistence";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,8 @@ const MAX_REPLAY = 100;
  * (ARCHITECTURE.md § 2); the wire format here is the contract.
  */
 export async function GET(request: Request) {
-  ensureWorld();
+  ensureWorld(request);
+  const tenant = resolveTenant(request);
   const url = new URL(request.url);
   const replay = Math.min(
     Math.max(parseInt(url.searchParams.get("replay") ?? "0", 10) || 0, 0),
@@ -43,7 +45,7 @@ export async function GET(request: Request) {
       };
 
       push(
-        JSON.stringify({ connectedAt: new Date().toISOString(), replay }),
+        JSON.stringify({ connectedAt: new Date().toISOString(), replay, tenant }),
         "hello"
       );
       const backlog = replay > 0 ? [...eventHistory()].slice(-replay) : [];
@@ -52,6 +54,9 @@ export async function GET(request: Request) {
       }
 
       unsubscribe = subscribe((event) => {
+        // Events belong to whichever tenant's world is active when they are
+        // emitted — only forward the subscriber's own.
+        if (activeTenant() !== tenant) return;
         push(JSON.stringify(event), "shipment-event");
       });
 

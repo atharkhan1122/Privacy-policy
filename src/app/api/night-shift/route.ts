@@ -4,7 +4,7 @@ import { runNightShift } from "@/core/store";
 export const dynamic = "force-dynamic";
 
 /** POST /api/night-shift — run the 8-hour autonomous shift, return the report. */
-export async function POST() {
-  ensureWorld();
+export async function POST(request: Request) {
+  ensureWorld(request);
   return ok(runNightShift());
 }

@@ -7,14 +7,14 @@ export const dynamic = "force-dynamic";
 const CHANNELS: IntakeChannel[] = ["WHATSAPP", "EMAIL", "VOICE_NOTE", "PDF", "IMAGE"];
 
 /** GET /api/intake — the raw inbox. */
-export async function GET() {
-  const world = ensureWorld();
+export async function GET(request: Request) {
+  const world = ensureWorld(request);
   return ok({ intake: world.intake, count: world.intake.length });
 }
 
 /** POST /api/intake {channel, from, raw} — feed the engine a message. */
 export async function POST(request: Request) {
-  ensureWorld();
+  ensureWorld(request);
   let body: { channel?: string; from?: string; raw?: string };
   try {
     body = await request.json();

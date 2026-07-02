@@ -32,6 +32,25 @@ All bodies are JSON. Errors return `{ "error": string }` with 400/401/404/501.
 The webhook route is exempt from the API-key check (Meta cannot send custom
 headers) — the HMAC signature is its authentication.
 
+## Multi-tenancy — the covenant, structurally
+
+Every API key addresses its **own isolated world**. Key entries may carry a
+tenant alias (`erk_abc:meridian`); without one the tenant id derives from the
+key. A brand-new tenant starts from the pristine seeded world (the genesis
+snapshot); each tenant persists to its own file (`tenant-<id>.json` beside
+the default `world.json`). One key can never read another key's shipments,
+rates, margins, or events — `GET /api/whoami` reports which tenant a key
+addresses. Unkeyed webhook traffic lands in the `default` tenant.
+
+Implementation note: the active tenant's world lives in the domain
+singletons and swaps atomically per request (persist-out, hydrate-in) —
+sound for Node's single-threaded execution; the Postgres implementation
+replaces the swap with row-level security (ARCHITECTURE.md § 4).
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/whoami` | `{tenant, persisted, shipments, intake, hoursEliminated}` for the presenting key |
+
 ## The shipment (read)
 
 | Method | Path | Description |

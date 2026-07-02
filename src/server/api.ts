@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eventHistory } from "@/core/events";
 import { agentActions } from "@/core/agent";
 import { bootWorld, customerById, shipmentById, worldSnapshot } from "@/core/store";
-import { initPersistence } from "@/server/persistence";
+import { activateTenant, initPersistence, resolveTenant } from "@/server/persistence";
 import type { Shipment } from "@/core/types";
 
 /**
@@ -26,10 +26,15 @@ export function notFound(message: string) {
   return NextResponse.json({ error: message }, { status: 404 });
 }
 
-/** Every handler calls this first: seed, hydrate from disk, arm persistence. */
-export function ensureWorld() {
+/**
+ * Every handler calls this first: seed, arm persistence, and — given the
+ * request — swap in the world belonging to the caller's tenant (keyed by
+ * API key; see src/server/persistence.ts § Tenancy).
+ */
+export function ensureWorld(request?: Request) {
   bootWorld();
   initPersistence();
+  if (request) activateTenant(resolveTenant(request));
   return worldSnapshot();
 }
 

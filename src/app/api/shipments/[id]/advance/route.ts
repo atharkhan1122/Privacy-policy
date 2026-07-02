@@ -6,10 +6,10 @@ export const dynamic = "force-dynamic";
 
 /** POST /api/shipments/:id/advance — one lifecycle transition forward. */
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureWorld();
+  ensureWorld(request);
   const { id } = await params;
   const shipment = shipmentById(id);
   if (!shipment) return notFound(`Unknown shipment ${id}`);

@@ -123,7 +123,7 @@ describe("the API plane", () => {
   });
 
   it("publishes the graph behind the privacy floor and the event stream", async () => {
-    const graph = await (await getGraph()).json();
+    const graph = await (await getGraph(new Request("http://engine.room/api/graph"))).json();
     expect(graph.lanes.every((l: { observations: number }) => l.observations >= 25)).toBe(true);
     const events = await (
       await getEvents(new Request("http://engine.room/api/events?limit=5"))
