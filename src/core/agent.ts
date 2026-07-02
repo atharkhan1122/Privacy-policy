@@ -143,3 +143,24 @@ export function reject(actionId: string): AgentAction | undefined {
 export function seedAction(a: Omit<AgentAction, "id">): void {
   actions.push({ ...a, id: `act-${++actionSeq}` });
 }
+
+// ─── Persistence ─────────────────────────────────────────────────────────────
+
+export interface AgentSnapshot {
+  grants: Record<AgentTaskType, AutonomyGrant>;
+  actions: AgentAction[];
+  actionSeq: number;
+}
+
+export function agentSnapshot(): AgentSnapshot {
+  return { grants, actions, actionSeq };
+}
+
+export function restoreAgent(snapshot: AgentSnapshot): void {
+  for (const key of Object.keys(grants) as AgentTaskType[]) {
+    if (snapshot.grants[key]) Object.assign(grants[key], snapshot.grants[key]);
+  }
+  actions.length = 0;
+  actions.push(...snapshot.actions);
+  actionSeq = snapshot.actionSeq;
+}

@@ -137,6 +137,33 @@ export function worldSnapshot() {
   return world as Readonly<World>;
 }
 
+// ─── Persistence ─────────────────────────────────────────────────────────────
+
+export interface StoreSnapshot {
+  world: World;
+  shipmentSeq: number;
+  intakeSeq: number;
+}
+
+export function storeSnapshot(): StoreSnapshot {
+  return { world, shipmentSeq, intakeSeq };
+}
+
+export function restoreStore(snapshot: StoreSnapshot): void {
+  world.shipments = snapshot.world.shipments;
+  world.intake = snapshot.world.intake;
+  world.quotes = snapshot.world.quotes;
+  world.documents = snapshot.world.documents;
+  world.invoices = snapshot.world.invoices;
+  world.tracking = snapshot.world.tracking;
+  world.hoursEliminated = snapshot.world.hoursEliminated;
+  world.lastShift = snapshot.world.lastShift;
+  world.booted = true; // restored state supersedes seeding
+  shipmentSeq = snapshot.shipmentSeq;
+  intakeSeq = snapshot.intakeSeq;
+  notify();
+}
+
 export function customers() {
   return CUSTOMERS;
 }

@@ -67,6 +67,21 @@ export function learn(shipment: Shipment, observations: number, at?: string): vo
   );
 }
 
+// ─── Persistence ─────────────────────────────────────────────────────────────
+// Only observation counts mutate at runtime; the rest of the graph is static.
+
+export function graphSnapshot(): Record<string, number> {
+  return Object.fromEntries(lanes.map((l) => [l.lane, l.observations]));
+}
+
+export function restoreGraph(observations: Record<string, number>): void {
+  for (const lane of lanes) {
+    if (typeof observations[lane.lane] === "number") {
+      lane.observations = observations[lane.lane];
+    }
+  }
+}
+
 // ─── Predictive ETA / delay engine ───────────────────────────────────────────
 
 export function predictEta(shipment: Shipment, promised: string): EtaPrediction {

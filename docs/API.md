@@ -3,8 +3,21 @@
 Every route operates the same domain core the terminal UI uses. These
 request/response contracts are the service seam: the NestJS services in
 [ARCHITECTURE.md](../ARCHITECTURE.md) implement exactly these shapes against
-Postgres. In this repository the world is an in-memory, seeded instance
-per server process — state resets on restart by design (the demo world).
+Postgres.
+
+**Durability:** the server world is persisted to disk — hydrated from a
+snapshot on boot, atomically re-written (debounced) after every mutation.
+Restart the server and shipments, quotes, agent trust, learned margins and
+the event history all survive. Configuration:
+
+| Env var | Default | Meaning |
+|---|---|---|
+| `ENGINE_ROOM_PERSIST` | on | Set `0` to run purely in-memory |
+| `ENGINE_ROOM_DATA` | `.data/world.json` | Snapshot path |
+
+The per-module `snapshot()/restore()` functions are the repository
+interface — swap the JSON file for Postgres and nothing above the
+persistence adapter changes. The browser demo world remains in-memory.
 
 Base URL: wherever the Next.js app runs (`http://localhost:3000` in dev).
 All bodies are JSON. Errors return `{ "error": string }` with 400/404/501.

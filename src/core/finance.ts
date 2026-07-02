@@ -9,6 +9,14 @@ import { emit } from "./events";
 
 let invSeq = 100;
 
+export function invoiceSeq(): number {
+  return invSeq;
+}
+
+export function restoreInvoiceSeq(seq: number): void {
+  invSeq = seq;
+}
+
 export function issueInvoice(
   shipment: Shipment,
   customer: Customer,

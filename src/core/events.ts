@@ -41,3 +41,20 @@ export function subscribe(listener: Listener): () => void {
 export function eventHistory(): readonly ShipmentEvent[] {
   return history;
 }
+
+// ─── Persistence ─────────────────────────────────────────────────────────────
+
+export interface EventsSnapshot {
+  seq: number;
+  history: ShipmentEvent[];
+}
+
+export function eventsSnapshot(): EventsSnapshot {
+  return { seq, history };
+}
+
+export function restoreEvents(snapshot: EventsSnapshot): void {
+  seq = snapshot.seq;
+  history.length = 0;
+  history.push(...snapshot.history);
+}

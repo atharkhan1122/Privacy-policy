@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { eventHistory } from "@/core/events";
 import { agentActions } from "@/core/agent";
 import { bootWorld, customerById, shipmentById, worldSnapshot } from "@/core/store";
+import { initPersistence } from "@/server/persistence";
 import type { Shipment } from "@/core/types";
 
 /**
@@ -25,9 +26,10 @@ export function notFound(message: string) {
   return NextResponse.json({ error: message }, { status: 404 });
 }
 
-/** Every handler calls this first: seed + agent history + pending quote. */
+/** Every handler calls this first: seed, hydrate from disk, arm persistence. */
 export function ensureWorld() {
   bootWorld();
+  initPersistence();
   return worldSnapshot();
 }
 

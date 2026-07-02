@@ -143,6 +143,23 @@ export function recordVerdict(lane: string, marginPct: number, verdict: QuoteVer
   winLossLog.push({ lane, marginPct, verdict });
 }
 
+// ─── Persistence ─────────────────────────────────────────────────────────────
+
+export interface QuoteEngineSnapshot {
+  winLossLog: { lane: string; marginPct: number; verdict: QuoteVerdict }[];
+  quoteSeq: number;
+}
+
+export function quoteEngineSnapshot(): QuoteEngineSnapshot {
+  return { winLossLog, quoteSeq };
+}
+
+export function restoreQuoteEngine(snapshot: QuoteEngineSnapshot): void {
+  winLossLog.length = 0;
+  winLossLog.push(...snapshot.winLossLog);
+  quoteSeq = snapshot.quoteSeq;
+}
+
 /**
  * Suggested margin % for a lane: midpoint between the average winning margin
  * (pull up) and the average losing margin (ceiling), nudged by customer

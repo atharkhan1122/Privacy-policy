@@ -27,6 +27,14 @@ export const DOCUMENT_LABELS: Record<DocumentType, string> = {
 
 let docSeq = 0;
 
+export function documentSeq(): number {
+  return docSeq;
+}
+
+export function restoreDocumentSeq(seq: number): void {
+  docSeq = seq;
+}
+
 export function requiredDocuments(shipment: Shipment): DocumentType[] {
   const base: DocumentType[] = ["COMMERCIAL_INVOICE", "PACKING_LIST", "CUSTOMS_DECLARATION"];
   base.push(shipment.mode === "AIR" ? "AIR_WAYBILL" : "BILL_OF_LADING");
