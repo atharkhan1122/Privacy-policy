@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { recentEvents, useWorld, resolveException } from "@/core/store";
+import { recentEvents, resolveException } from "@/core/store";
+import { useWorld } from "@/core/use-world";
 import { agentActions } from "@/core/agent";
 import { priorityQueue, type TaskKind } from "@/core/priority";
 import { Bar, Btn, Mono, Panel, StatTile, StateChip, timeAgo, timeIn, usd } from "@/components/ui";

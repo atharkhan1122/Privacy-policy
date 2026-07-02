@@ -1,6 +1,3 @@
-"use client";
-
-import { useSyncExternalStore } from "react";
 import type {
   IntakeMessage,
   Invoice,
@@ -36,7 +33,7 @@ import { agentActions, autonomyGrants, propose } from "./agent";
  * domain functions so every change emits events.
  */
 
-interface World {
+export interface World {
   shipments: Shipment[];
   intake: IntakeMessage[];
   quotes: Quote[];
@@ -123,19 +120,21 @@ function startTicker(): void {
   }, 6500);
 }
 
-// ─── React subscription ──────────────────────────────────────────────────────
+// ─── Subscription primitives (React hook lives in use-world.ts) ─────────────
 
-export function useWorld(): { world: World; version: number } {
-  const v = useSyncExternalStore(
-    (cb) => {
-      listeners.add(cb);
-      bootWorld();
-      return () => listeners.delete(cb);
-    },
-    () => version,
-    () => 0
-  );
-  return { world, version: v };
+export function subscribeWorld(cb: () => void): () => void {
+  listeners.add(cb);
+  bootWorld();
+  return () => listeners.delete(cb);
+}
+
+export function worldVersion(): number {
+  return version;
+}
+
+/** Read-only view of the world's collections — the API plane's read model. */
+export function worldSnapshot() {
+  return world as Readonly<World>;
 }
 
 export function customers() {

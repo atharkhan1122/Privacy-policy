@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { customerById, customers, useWorld } from "@/core/store";
+import { customerById, customers } from "@/core/store";
+import { useWorld } from "@/core/use-world";
 import { receivablesAging, marginPct } from "@/core/finance";
 import { revenueForecast } from "@/core/forecast";
 import { Bar, Mono, Panel, StatTile, timeAgo, timeIn, usd } from "@/components/ui";

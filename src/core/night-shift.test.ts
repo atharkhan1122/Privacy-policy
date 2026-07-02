@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bootWorld, runNightShift, useWorld } from "./store";
+import { bootWorld, runNightShift } from "./store";
 import { agentActions } from "./agent";
 import { revenueForecast } from "./forecast";
 
@@ -10,7 +10,6 @@ import { revenueForecast } from "./forecast";
  * documents and collections against the real store.
  */
 
-void useWorld; // store module is exercised via runNightShift
 
 describe("the night shift", () => {
   bootWorld();

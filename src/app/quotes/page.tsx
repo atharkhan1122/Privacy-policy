@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { acceptQuote, quoteShipment, useWorld, customerById } from "@/core/store";
+import { acceptQuote, quoteShipment, customerById } from "@/core/store";
+import { useWorld } from "@/core/use-world";
 import { suggestMarginPct, winProbability, knownLanes } from "@/core/quote-engine";
 import { laneByKey } from "@/core/trade-graph";
 import { Btn, Mono, Panel, timeAgo, usd } from "@/components/ui";

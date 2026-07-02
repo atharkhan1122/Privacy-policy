@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { bootWorld, parseIntake, submitIntake, useWorld } from "./store";
+import { bootWorld, parseIntake, submitIntake } from "./store";
 
-void useWorld;
 
 describe("live intake composer", () => {
   bootWorld();

@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { answerQuery, type AssistantReply } from "@/core/assistant";
 import { agentActions } from "@/core/agent";
-import { customers, useWorld } from "@/core/store";
+import { customers } from "@/core/store";
+import { useWorld } from "@/core/use-world";
 import { Mono } from "./ui";
 
 interface Turn {

@@ -2,13 +2,8 @@
 
 import { use } from "react";
 import Link from "next/link";
-import {
-  advanceShipment,
-  customerById,
-  quoteShipment,
-  acceptQuote,
-  useWorld,
-} from "@/core/store";
+import { advanceShipment, customerById, quoteShipment, acceptQuote } from "@/core/store";
+import { useWorld } from "@/core/use-world";
 import { eventHistory } from "@/core/events";
 import { canAdvance, nextState, STATE_LABELS } from "@/core/state-machine";
 import { DOCUMENT_LABELS } from "@/core/documents";

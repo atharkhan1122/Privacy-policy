@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Mono } from "./ui";
 import { AssistantDrawer } from "./assistant";
-import { useWorld } from "@/core/store";
+import { useWorld } from "@/core/use-world";
 
 const NAV: { href: string; label: string; key: string; hint: string }[] = [
   { href: "/", label: "Control Tower", key: "t", hint: "live fleet + exceptions" },

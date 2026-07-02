@@ -10,7 +10,8 @@ import {
   reject,
   setAutonomyLevel,
 } from "@/core/agent";
-import { forceNotify, runNightShift, useWorld } from "@/core/store";
+import { forceNotify, runNightShift } from "@/core/store";
+import { useWorld } from "@/core/use-world";
 import { Btn, Mono, Panel, timeAgo, usd } from "@/components/ui";
 import type { AutonomyLevel } from "@/core/types";
 

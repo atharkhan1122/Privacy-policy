@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { customers, useWorld } from "@/core/store";
+import { customers } from "@/core/store";
+import { useWorld } from "@/core/use-world";
 import { DOCUMENT_LABELS } from "@/core/documents";
 import { Bar, Mono, Panel, Pipeline, StateChip, timeAgo, timeIn, usd } from "@/components/ui";
 

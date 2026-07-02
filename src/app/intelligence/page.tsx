@@ -1,7 +1,7 @@
 "use client";
 
 import { carrierScores, laneStats } from "@/core/trade-graph";
-import { useWorld } from "@/core/store";
+import { useWorld } from "@/core/use-world";
 import { Bar, Mono, Panel, StatTile } from "@/components/ui";
 
 export default function IntelligencePage() {

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { convertIntake, customers, parseIntakeSmart, submitIntake, useWorld } from "@/core/store";
+import { convertIntake, customers, parseIntakeSmart, submitIntake } from "@/core/store";
+import { useWorld } from "@/core/use-world";
 import { Bar, Btn, Mono, Panel, timeAgo } from "@/components/ui";
 import type { ExtractedField, IntakeChannel } from "@/core/types";
 

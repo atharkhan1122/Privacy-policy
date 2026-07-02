@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useWorld } from "@/core/store";
+import { useWorld } from "@/core/use-world";
 import { DOCUMENT_LABELS } from "@/core/documents";
 import { Mono, Panel, StatTile, timeAgo } from "@/components/ui";
 

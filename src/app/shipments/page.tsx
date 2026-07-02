@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useWorld, customerById } from "@/core/store";
+import { customerById } from "@/core/store";
+import { useWorld } from "@/core/use-world";
 import { Mono, Panel, StateChip, timeAgo, usd } from "@/components/ui";
 import { SHIPMENT_STATES, type ShipmentState } from "@/core/types";
 import { STATE_LABELS } from "@/core/state-machine";
