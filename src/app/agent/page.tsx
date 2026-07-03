@@ -9,6 +9,7 @@ import {
 } from "@/core/agent";
 import { approveAction, rejectAction, runNightShift, setAutonomy } from "@/core/commands";
 import { useWorld } from "@/core/use-world";
+import { usePlan } from "@/core/use-plan";
 import { Btn, Mono, Panel, timeAgo, usd } from "@/components/ui";
 import type { AutonomyLevel } from "@/core/types";
 
@@ -18,6 +19,8 @@ function shiftTime(iso: string): string {
 
 export default function AgentPage() {
   const { world } = useWorld(); // subscribe for re-render on any event
+  const { features } = usePlan();
+  const maxNotch = features.maxAutonomyLevel;
   const grants = autonomyGrants();
   const actions = agentActions();
   const queue = actions.filter((a) => a.status === "AWAITING_APPROVAL" || a.status === "ESCALATED");
@@ -64,22 +67,28 @@ export default function AgentPage() {
                 <td className="px-2 py-2.5 font-mono tabular-nums text-foam-soft">{usd(g.valueCeiling)}</td>
                 <td className="px-2 py-2.5">
                   <div className="flex gap-1">
-                    {([1, 2, 3, 4] as AutonomyLevel[]).map((lvl) => (
-                      <button
-                        key={lvl}
-                        onClick={() => void setAutonomy(g.taskType, lvl)}
-                        title={AUTONOMY_LABELS[lvl]}
-                        className={`h-6 w-6 border font-mono text-[10px] ${
-                          g.level === lvl
-                            ? lvl === 4
-                              ? "border-magenta bg-magenta/20 text-magenta"
-                              : "border-instr bg-instr/10 text-instr"
-                            : "border-line text-foam-soft hover:border-foam-soft"
-                        }`}
-                      >
-                        {lvl}
-                      </button>
-                    ))}
+                    {([1, 2, 3, 4] as AutonomyLevel[]).map((lvl) => {
+                      const locked = lvl > maxNotch;
+                      return (
+                        <button
+                          key={lvl}
+                          onClick={() => void setAutonomy(g.taskType, lvl)}
+                          disabled={locked}
+                          title={locked ? `${AUTONOMY_LABELS[lvl]} — Pro only` : AUTONOMY_LABELS[lvl]}
+                          className={`h-6 w-6 border font-mono text-[10px] ${
+                            locked
+                              ? "cursor-not-allowed border-line-soft text-foam-soft/30"
+                              : g.level === lvl
+                                ? lvl === 4
+                                  ? "border-magenta bg-magenta/20 text-magenta"
+                                  : "border-instr bg-instr/10 text-instr"
+                                : "border-line text-foam-soft hover:border-foam-soft"
+                          }`}
+                        >
+                          {locked ? "·" : lvl}
+                        </button>
+                      );
+                    })}
                   </div>
                 </td>
               </tr>
@@ -90,6 +99,15 @@ export default function AgentPage() {
           Perceive → Recall → Decide → Escalate. Below 85% confidence or above the value ceiling,
           the agent always hands to a human with full context — the best agents are famous for
           what they refuse to do alone.
+          {maxNotch < 4 && (
+            <>
+              {" "}Your plan caps autonomy at notch {maxNotch}.{" "}
+              <Link href="/pricing" className="text-magenta hover:underline">
+                Upgrade to Pro
+              </Link>{" "}
+              for full autonomy.
+            </>
+          )}
         </div>
       </Panel>
 
@@ -98,9 +116,18 @@ export default function AgentPage() {
         title="The night shift — Deck 06, executable"
         fig="FIG.1b"
         actions={
-          <Btn tone="magenta" onClick={() => void runNightShift()}>
-            ▶ Run 8h autonomous shift
-          </Btn>
+          features.nightShift ? (
+            <Btn tone="magenta" onClick={() => void runNightShift()}>
+              ▶ Run 8h autonomous shift
+            </Btn>
+          ) : (
+            <Link
+              href="/pricing"
+              className="border border-magenta/70 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-magenta transition-colors hover:bg-magenta/10"
+            >
+              🔒 Night Shift is Pro · Upgrade
+            </Link>
+          )
         }
       >
         {!shift ? (

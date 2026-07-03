@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Mono } from "./ui";
 import { AssistantDrawer } from "./assistant";
 import { useWorld } from "@/core/use-world";
+import { usePlan } from "@/core/use-plan";
 import { initServerSync, syncMode } from "@/core/server-sync";
 
 const NAV: { href: string; label: string; key: string; hint: string }[] = [
@@ -20,24 +21,12 @@ const NAV: { href: string; label: string; key: string; hint: string }[] = [
   { href: "/portal", label: "Portal", key: "p", hint: "customer side" },
 ];
 
-interface MeState {
-  authEnabled: boolean;
-  account?: { email: string; plan: "FREE" | "PRO" };
-}
-
 function AccountBadge() {
   const router = useRouter();
-  const [me, setMe] = useState<MeState | null>(null);
+  const { authEnabled, plan, email } = usePlan();
 
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => (r.ok ? r.json() : { authEnabled: true }))
-      .then(setMe)
-      .catch(() => setMe(null));
-  }, []);
-
-  if (!me?.authEnabled || !me.account) return null;
-  const pro = me.account.plan === "PRO";
+  if (!authEnabled || !plan) return null;
+  const pro = plan === "PRO";
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -62,7 +51,7 @@ function AccountBadge() {
           Upgrade
         </Link>
       )}
-      <Mono className="text-foam-soft/70">{me.account.email}</Mono>
+      {email && <Mono className="text-foam-soft/70">{email}</Mono>}
       <button
         onClick={logout}
         className="font-mono text-[10px] uppercase tracking-[0.12em] text-foam-soft/70 hover:text-danger"

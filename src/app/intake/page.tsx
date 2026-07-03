@@ -5,6 +5,7 @@ import { useState } from "react";
 import { customers } from "@/core/store";
 import { convertIntake, parseIntakeSmart, submitIntake } from "@/core/commands";
 import { useWorld } from "@/core/use-world";
+import { usePlan } from "@/core/use-plan";
 import { Bar, Btn, Mono, Panel, timeAgo } from "@/components/ui";
 import type { ExtractedField, IntakeChannel } from "@/core/types";
 
@@ -107,6 +108,9 @@ function Composer() {
 
 export default function IntakePage() {
   const { world } = useWorld();
+  const { features } = usePlan();
+  const activeShipments = world.shipments.filter((s) => s.state !== "SETTLEMENT").length;
+  const atCap = activeShipments >= features.maxActiveShipments;
 
   return (
     <div className="space-y-5">
@@ -173,11 +177,20 @@ export default function IntakePage() {
                     Parse with AI
                   </Btn>
                 )}
-                {msg.status === "PARSED" && (
-                  <Btn tone="magenta" onClick={() => void convertIntake(msg.id)}>
-                    Convert → shipment
-                  </Btn>
-                )}
+                {msg.status === "PARSED" &&
+                  (atCap ? (
+                    <Link
+                      href="/pricing"
+                      className="border border-magenta/70 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-magenta hover:bg-magenta/10"
+                      title={`Free is capped at ${features.maxActiveShipments} active shipments`}
+                    >
+                      🔒 At {features.maxActiveShipments}-shipment cap · Upgrade
+                    </Link>
+                  ) : (
+                    <Btn tone="magenta" onClick={() => void convertIntake(msg.id)}>
+                      Convert → shipment
+                    </Btn>
+                  ))}
                 {msg.status === "CONVERTED" && msg.shipmentId && (
                   <Link
                     href={`/shipments/${msg.shipmentId}`}
