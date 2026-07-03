@@ -8,7 +8,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const world = ensureWorld(request);
+  const world = await ensureWorld(request);
   const { id } = await params;
   const invoice = world.invoices.find((i) => i.id === id);
   if (!invoice) return notFound(`Unknown invoice ${id}`);

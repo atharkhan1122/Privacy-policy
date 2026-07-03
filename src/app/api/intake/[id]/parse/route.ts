@@ -12,7 +12,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const world = ensureWorld(request);
+  const world = await ensureWorld(request);
   const { id } = await params;
   const message = world.intake.find((m) => m.id === id);
   if (!message) return notFound(`Unknown intake message ${id}`);
@@ -23,7 +23,7 @@ export async function POST(
       const extraction = await extractWithClaude({ raw: message.raw, from: message.from });
       // Another tenant may have been activated during the await; re-activate
       // ours and re-find the message in the (possibly re-hydrated) world.
-      const fresh = ensureWorld(request).intake.find((m) => m.id === id);
+      const fresh = (await ensureWorld(request)).intake.find((m) => m.id === id);
       if (!fresh) return notFound(`Unknown intake message ${id}`);
       if (fresh.status === "NEW") {
         fresh.extraction = extraction;
@@ -33,11 +33,11 @@ export async function POST(
       }
       return ok(fresh);
     } catch {
-      ensureWorld(request); // restore our tenant before the local fallback
+      await ensureWorld(request); // restore our tenant before the local fallback
       // fall through to the deterministic parser
     }
   }
   parseIntake(id);
-  const parsed = ensureWorld(request).intake.find((m) => m.id === id);
+  const parsed = (await ensureWorld(request)).intake.find((m) => m.id === id);
   return ok(parsed ?? message);
 }

@@ -1,7 +1,7 @@
 import { ensureWorld } from "@/server/api";
 import { eventHistory, subscribe } from "@/core/events";
 import { subscribeWorld } from "@/core/store";
-import { activeTenant, resolveTenant } from "@/server/persistence";
+import { activeTenant } from "@/server/persistence";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +21,10 @@ const MAX_REPLAY = 100;
  * (ARCHITECTURE.md § 2); the wire format here is the contract.
  */
 export async function GET(request: Request) {
-  ensureWorld(request);
-  const tenant = resolveTenant(request);
+  await ensureWorld(request);
+  // ensureWorld activated the caller's (epoch-checked) tenant; filter the stream
+  // to exactly that world so a revoked cookie never receives another's events.
+  const tenant = activeTenant();
   const url = new URL(request.url);
   const replay = Math.min(
     Math.max(parseInt(url.searchParams.get("replay") ?? "0", 10) || 0, 0),

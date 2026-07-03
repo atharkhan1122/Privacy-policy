@@ -9,6 +9,6 @@ export const dynamic = "force-dynamic";
  * UI becomes a read-replica of the server world, re-pulling on SSE events.
  */
 export async function GET(request: Request) {
-  ensureWorld(request);
+  await ensureWorld(request);
   return ok(captureSnapshot());
 }

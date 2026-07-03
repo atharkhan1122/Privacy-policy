@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 /** GET /api/events?limit=50 — the nervous system, newest first. */
 export async function GET(request: Request) {
-  ensureWorld(request);
+  await ensureWorld(request);
   const limit = Math.min(
     Math.max(parseInt(new URL(request.url).searchParams.get("limit") ?? "50", 10) || 50, 1),
     500

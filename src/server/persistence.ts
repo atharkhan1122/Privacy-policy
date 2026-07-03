@@ -57,13 +57,21 @@ export function resolveTenant(request: Request): string {
   // here for a genuinely authenticated account (see src/middleware.ts).
   const account = request.headers.get("x-engine-account");
   if (account) return `t_${account}`;
+  return apiKeyTenant(request) ?? "default"; // unkeyed = webhook traffic → default world
+}
+
+/**
+ * The tenant a valid partner API key addresses, or null when no key matches.
+ * Deliberately ignores the x-engine-account header — used on the session path
+ * after an epoch check has already rejected a stale cookie, so it must not fall
+ * back to a header the middleware injected before that check (see server/api.ts).
+ */
+export function apiKeyTenant(request: Request): string | null {
   const entries = parseApiKeys(process.env.ENGINE_ROOM_API_KEYS);
-  if (entries.length === 0) return "default";
+  if (entries.length === 0) return null;
   const presented = presentedKey(request.headers);
-  const entry = presented
-    ? entries.find((e) => safeEqual(e.key, presented))
-    : undefined;
-  return entry?.tenant ?? "default"; // unkeyed = webhook traffic → default world
+  const entry = presented ? entries.find((e) => safeEqual(e.key, presented)) : undefined;
+  return entry?.tenant ?? null;
 }
 
 /** Swap the domain singletons to the given tenant's world. */

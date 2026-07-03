@@ -8,13 +8,13 @@ export const dynamic = "force-dynamic";
 
 /** GET /api/agent/autonomy — the trust dial. */
 export async function GET(request: Request) {
-  ensureWorld(request);
+  await ensureWorld(request);
   return ok({ grants: autonomyGrants() });
 }
 
 /** POST /api/agent/autonomy {taskType, level} — turn a notch. */
 export async function POST(request: Request) {
-  ensureWorld(request);
+  await ensureWorld(request);
   let body: { taskType?: string; level?: number };
   try {
     body = await request.json();

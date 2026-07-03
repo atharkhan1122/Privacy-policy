@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { createPostgresAccountStore, type Queryable } from "@/server/account-store";
 import {
@@ -11,6 +11,7 @@ import {
   listAccounts,
   requestUpgrade,
   setAccountStore,
+  setPassword,
   setPlan,
   verifyCredentials,
 } from "@/server/accounts";
@@ -26,13 +27,15 @@ let db: PGlite;
 let n = 0;
 const email = () => `pg${n++}@meridian.test`;
 
-beforeEach(async () => {
-  db = new PGlite(); // fresh in-memory database per test
+// One in-process Postgres for the file (booting the WASM engine is the slow
+// part). Tests use unique emails, so a shared database keeps them independent.
+beforeAll(async () => {
+  db = new PGlite();
   const queryable: Queryable = { query: (text, params) => db.query(text, params) };
   setAccountStore(createPostgresAccountStore(queryable));
 });
 
-afterEach(async () => {
+afterAll(async () => {
   setAccountStore(undefined); // restore env-based resolution (file default)
   await db.close();
 });
@@ -100,6 +103,14 @@ describe("accounts on Postgres (pglite)", () => {
     const result = await consumeVerifyToken(token!);
     expect(result.ok).toBe(true);
     expect((await findAccount(created.account.id))?.emailVerified).toBe(true);
+  });
+
+  it("persists and increments the session epoch across a password change", async () => {
+    const created = await createAccount(email(), "originalpass");
+    if (!created.ok) throw new Error("setup");
+    expect((await findAccount(created.account.id))?.sessionEpoch ?? 0).toBe(0);
+    await setPassword(created.account.id, "brandnewpass");
+    expect((await findAccount(created.account.id))?.sessionEpoch).toBe(1);
   });
 
   it("lists accounts without leaking credential material", async () => {

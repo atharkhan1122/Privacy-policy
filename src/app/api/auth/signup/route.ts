@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   const result = await createAccount(body.email ?? "", body.password ?? "");
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
   await sendVerificationEmail(result.account, baseUrlFrom(request));
-  const token = await signSession(result.account.id, Date.now());
+  const token = await signSession(result.account.id, Date.now(), result.account.sessionEpoch ?? 0);
   return NextResponse.json(
     { account: toPublic(result.account) },
     { status: 201, headers: { "set-cookie": sessionCookie(token) } }

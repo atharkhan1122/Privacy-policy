@@ -1,26 +1,18 @@
 import { NextResponse } from "next/server";
-import { authEnabled, findAccount, toPublic } from "@/server/accounts";
-import { SESSION_COOKIE, verifySession } from "@/server/session";
+import { authEnabled, toPublic } from "@/server/accounts";
+import { currentAccount } from "@/server/current-user";
 import { PLANS } from "@/core/plans";
 
 export const dynamic = "force-dynamic";
-
-function cookie(request: Request, name: string): string | undefined {
-  const header = request.headers.get("cookie") ?? "";
-  for (const part of header.split(";")) {
-    const [k, ...v] = part.trim().split("=");
-    if (k === name) return v.join("=");
-  }
-  return undefined;
-}
 
 /** GET /api/auth/me — the signed-in account + its plan features, or 401. */
 export async function GET(request: Request) {
   if (!authEnabled()) {
     return NextResponse.json({ authEnabled: false, plans: PLANS });
   }
-  const accountId = await verifySession(cookie(request, SESSION_COOKIE));
-  const account = accountId ? await findAccount(accountId) : undefined;
+  // currentAccount enforces the session-revocation epoch, so a stale token
+  // (issued before a password change) reads as signed-out here too.
+  const account = await currentAccount(request);
   if (!account) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   return NextResponse.json({
     authEnabled: true,

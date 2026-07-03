@@ -128,9 +128,12 @@ export async function middleware(request: NextRequest) {
 
   // ── Accounts plane ──────────────────────────────────────────────────────────
   if (authEnabled()) {
-    const accountId = await verifySession(
+    const session = await verifySession(
       cookieValue(request.headers.get("cookie"), SESSION_COOKIE)
     );
+    // Page-gating uses token validity only (the edge can't reach the DB to check
+    // the revocation epoch — currentAccount does that on data access).
+    const accountId = session?.id ?? null;
 
     if (!isApi) {
       if (PUBLIC_PAGES.has(path)) return pass();

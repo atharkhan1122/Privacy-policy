@@ -212,6 +212,9 @@ single-node.
 - **In-memory bits.** The rate limiter and the mail-relay outbox live in process
   memory — they reset on restart and aren't shared across nodes. A real email
   provider (`RESEND_API_KEY`) removes the outbox's role entirely.
+- **Session revocation is DB-backed**, so it works across nodes: a password
+  change bumps the account's epoch in the store, and every node checks it on each
+  request. No shared in-memory session state required.
 - **Finishing multi-node:** the world persistence is the same seam (see
   [`ARCHITECTURE.md`](../ARCHITECTURE.md) § 1) — moving the per-tenant snapshot
   into Postgres is the remaining step; the domain and API above that line don't

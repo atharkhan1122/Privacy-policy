@@ -12,7 +12,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const world = ensureWorld(request);
+  const world = await ensureWorld(request);
   const { id } = await params;
   const quote = world.quotes.find((q) => q.id === id);
   if (!quote) return notFound(`Unknown quote ${id}`);

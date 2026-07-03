@@ -146,6 +146,7 @@ function rowToAccount(row: Record<string, unknown>): Account {
       row.reset_token_exp == null ? undefined : Number(row.reset_token_exp),
     emailVerified: !!row.email_verified,
     verifyTokenHash: (row.verify_token_hash as string) ?? undefined,
+    sessionEpoch: row.session_epoch == null ? 0 : Number(row.session_epoch),
   };
 }
 
@@ -165,8 +166,11 @@ const SCHEMA_STATEMENTS = [
     reset_token_hash text,
     reset_token_exp bigint,
     email_verified boolean not null default false,
-    verify_token_hash text
+    verify_token_hash text,
+    session_epoch integer not null default 0
   )`,
+  // Additive migration for tables created before session_epoch existed.
+  `alter table accounts add column if not exists session_epoch integer not null default 0`,
   `create index if not exists accounts_reset_token_hash_idx on accounts(reset_token_hash)`,
   `create index if not exists accounts_verify_token_hash_idx on accounts(verify_token_hash)`,
 ];
@@ -225,13 +229,13 @@ class PostgresAccountStore implements AccountStore {
          email = $2, password_hash = $3, salt = $4, plan = $5, created_at = $6,
          upgrade_requested_at = $7, payoneer_reference = $8,
          reset_token_hash = $9, reset_token_exp = $10,
-         email_verified = $11, verify_token_hash = $12
+         email_verified = $11, verify_token_hash = $12, session_epoch = $13
        where id = $1`,
       [
         a.id, a.email, a.passwordHash, a.salt, a.plan, a.createdAt,
         a.upgradeRequestedAt ?? null, a.payoneerReference ?? null,
         a.resetTokenHash ?? null, a.resetTokenExp ?? null,
-        !!a.emailVerified, a.verifyTokenHash ?? null,
+        !!a.emailVerified, a.verifyTokenHash ?? null, a.sessionEpoch ?? 0,
       ]
     );
   }

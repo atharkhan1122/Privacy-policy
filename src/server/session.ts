@@ -1,7 +1,13 @@
 /**
  * Signed session tokens — isomorphic (Web Crypto), usable from both the edge
  * middleware and node route handlers. Format:
- * <accountId>.<issuedAt>.<base64url-hmac>.
+ * <accountId>.<issuedAt>.<epoch>.<base64url-hmac>.
+ *
+ * `epoch` is the account's session epoch at issue time. Bumping the account's
+ * epoch (on password change/reset) invalidates every token signed before it —
+ * enforced in currentAccount(), which compares the token's epoch to the stored
+ * one. The edge middleware can't reach the DB, so it still gates pages on token
+ * validity alone; the node layer does the revocation check on data access.
  *
  * This is demo-grade auth suitable for pilots: HMAC-signed httpOnly cookies,
  * scrypt-hashed passwords (see accounts.ts). For large-scale production you
@@ -47,28 +53,41 @@ async function hmac(payload: string): Promise<string> {
   return b64url(sig);
 }
 
-/** Sign a session for an account. Payload carries the id and an issued-at stamp. */
-export async function signSession(accountId: string, issuedAt: number): Promise<string> {
-  const payload = `${accountId}.${issuedAt}`;
+export interface SessionPayload {
+  id: string;
+  issuedAt: number;
+  epoch: number;
+}
+
+/** Sign a session for an account at a given epoch (its revocation counter). */
+export async function signSession(
+  accountId: string,
+  issuedAt: number,
+  epoch = 0
+): Promise<string> {
+  const payload = `${accountId}.${issuedAt}.${epoch}`;
   return `${payload}.${await hmac(payload)}`;
 }
 
-/** Verify a token; returns the accountId when valid and unexpired, else null. */
-export async function verifySession(token: string | undefined | null): Promise<string | null> {
+/** Verify a token; returns its payload when valid and unexpired, else null. */
+export async function verifySession(
+  token: string | undefined | null
+): Promise<SessionPayload | null> {
   if (!token) return null;
   const parts = token.split(".");
-  if (parts.length !== 3) return null;
-  const [accountId, issuedAtRaw, sig] = parts;
-  const expected = await hmac(`${accountId}.${issuedAtRaw}`);
+  if (parts.length !== 4) return null;
+  const [accountId, issuedAtRaw, epochRaw, sig] = parts;
+  const expected = await hmac(`${accountId}.${issuedAtRaw}.${epochRaw}`);
   // constant-time-ish compare
   if (sig.length !== expected.length) return null;
   let diff = 0;
   for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ expected.charCodeAt(i);
   if (diff !== 0) return null;
   const issuedAt = parseInt(issuedAtRaw, 10);
-  if (!Number.isFinite(issuedAt)) return null;
+  const epoch = parseInt(epochRaw, 10);
+  if (!Number.isFinite(issuedAt) || !Number.isFinite(epoch)) return null;
   if ((Date.now() - issuedAt) / 1000 > SESSION_TTL_SECONDS) return null;
-  return accountId;
+  return { id: accountId, issuedAt, epoch };
 }
 
 export function sessionCookie(token: string): string {

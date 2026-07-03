@@ -8,6 +8,6 @@ export const dynamic = "force-dynamic";
  * already filtered by the minimum-density privacy floor.
  */
 export async function GET(request: Request) {
-  ensureWorld(request);
+  await ensureWorld(request);
   return ok({ lanes: laneStats(), carriers: carrierScores() });
 }

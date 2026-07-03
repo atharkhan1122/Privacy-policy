@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 /** GET /api/shipments?state=TRANSIT — the fleet, optionally filtered. */
 export async function GET(request: Request) {
-  const world = ensureWorld(request);
+  const world = await ensureWorld(request);
   const state = new URL(request.url).searchParams.get("state");
   const shipments =
     state && (SHIPMENT_STATES as readonly string[]).includes(state)

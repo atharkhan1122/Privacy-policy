@@ -52,7 +52,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  ensureWorld(request);
+  await ensureWorld(request);
   const rawBody = await request.text();
 
   const secret = process.env.ENGINE_ROOM_WHATSAPP_SECRET;

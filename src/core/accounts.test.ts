@@ -7,11 +7,14 @@ import {
   createAccount,
   findAccount,
   requestUpgrade,
+  setPassword,
   setPlan,
   toPublic,
   verifyCredentials,
 } from "@/server/accounts";
 import { POST as changePassword } from "@/app/api/auth/change-password/route";
+import { GET as whoami } from "@/app/api/whoami/route";
+import { currentAccount } from "@/server/current-user";
 import {
   SESSION_COOKIE,
   clearedSessionCookie,
@@ -100,7 +103,7 @@ describe("accounts", () => {
 describe("session tokens", () => {
   it("round-trips a signed session and rejects tampering", async () => {
     const token = await signSession("acc42", Date.now());
-    expect(await verifySession(token)).toBe("acc42");
+    expect((await verifySession(token))?.id).toBe("acc42");
     expect(await verifySession(token + "x")).toBeNull();
     expect(await verifySession("acc42.123.forged")).toBeNull();
     expect(await verifySession(undefined)).toBeNull();
@@ -153,6 +156,50 @@ describe("change password", () => {
 
   it("401s without a session", async () => {
     expect((await changePassword(req(undefined, { currentPassword: "x", newPassword: "y" }))).status).toBe(401);
+  });
+});
+
+describe("session revocation", () => {
+  const reqWith = (cookie: string) =>
+    new Request("http://engine.room/api/state", { headers: { cookie } });
+
+  it("invalidates tokens issued before a password change", async () => {
+    const email = uniqueEmail();
+    const created = await createAccount(email, "originalpass");
+    if (!created.ok) throw new Error("setup");
+    const id = created.account.id;
+
+    const oldToken = await signSession(id, Date.now(), created.account.sessionEpoch ?? 0);
+    expect((await currentAccount(reqWith(`${SESSION_COOKIE}=${oldToken}`)))?.id).toBe(id);
+
+    // A password change bumps the epoch, revoking the old token everywhere.
+    const res = await setPassword(id, "brandnewpass");
+    if (!res.ok) throw new Error("setpw");
+    expect(await currentAccount(reqWith(`${SESSION_COOKIE}=${oldToken}`))).toBeNull();
+
+    // A token minted at the new epoch is accepted.
+    const newToken = await signSession(id, Date.now(), res.sessionEpoch);
+    expect((await currentAccount(reqWith(`${SESSION_COOKIE}=${newToken}`)))?.id).toBe(id);
+  });
+
+  it("keeps a revoked cookie off the account's tenant world (data plane)", async () => {
+    const created = await createAccount(uniqueEmail(), "originalpass");
+    if (!created.ok) throw new Error("setup");
+    const id = created.account.id;
+    const cookie = `${SESSION_COOKIE}=${await signSession(id, Date.now(), created.account.sessionEpoch ?? 0)}`;
+
+    const before = await (await whoami(reqWith(cookie))).json();
+    expect(before.tenant).toBe(`t_${id}`);
+
+    // Password change bumps the epoch; the same cookie is now stale.
+    const res = await setPassword(id, "brandnewpass");
+    if (!res.ok) throw new Error("setpw");
+
+    // A data route resolves the tenant through the epoch check — the stale cookie
+    // lands on the default world, never the account's.
+    const after = await (await whoami(reqWith(cookie))).json();
+    expect(after.tenant).not.toBe(`t_${id}`);
+    expect(after.tenant).toBe("default");
   });
 });
 

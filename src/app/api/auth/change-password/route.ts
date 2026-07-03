@@ -27,6 +27,8 @@ export async function POST(request: Request) {
   const result = await setPassword(account.id, body.newPassword ?? "");
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
 
-  const token = await signSession(account.id, Date.now());
+  // Re-issue this device's cookie at the new epoch — other sessions, still on
+  // the old epoch, are now revoked.
+  const token = await signSession(account.id, Date.now(), result.sessionEpoch);
   return NextResponse.json({ ok: true }, { headers: { "set-cookie": sessionCookie(token) } });
 }

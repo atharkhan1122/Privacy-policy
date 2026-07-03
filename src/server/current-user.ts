@@ -14,6 +14,12 @@ export function readCookie(request: Request, name: string): string | undefined {
 /** The signed-in account for a request, or null (also null when auth is off). */
 export async function currentAccount(request: Request): Promise<Account | null> {
   if (!authEnabled()) return null;
-  const id = await verifySession(readCookie(request, SESSION_COOKIE));
-  return (id ? await findAccount(id) : null) ?? null;
+  const session = await verifySession(readCookie(request, SESSION_COOKIE));
+  if (!session) return null;
+  const account = await findAccount(session.id);
+  if (!account) return null;
+  // Session revocation: a token minted before the account's current epoch
+  // (e.g. before a password change) is no longer valid.
+  if ((account.sessionEpoch ?? 0) !== session.epoch) return null;
+  return account;
 }

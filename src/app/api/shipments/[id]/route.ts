@@ -7,7 +7,7 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureWorld(request);
+  await ensureWorld(request);
   const { id } = await params;
   const detail = shipmentDetail(id);
   if (!detail) return notFound(`Unknown shipment ${id}`);

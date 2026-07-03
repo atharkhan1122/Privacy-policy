@@ -9,7 +9,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const world = ensureWorld(request);
+  const world = await ensureWorld(request);
   const { id } = await params;
   const message = world.intake.find((m) => m.id === id);
   if (!message) return notFound(`Unknown intake message ${id}`);

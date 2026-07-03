@@ -31,6 +31,8 @@ export interface Account {
   /** Email verification. */
   emailVerified?: boolean;
   verifyTokenHash?: string;
+  /** Session revocation counter — bumped on password change/reset. */
+  sessionEpoch?: number;
 }
 
 export interface PublicAccount {
@@ -172,11 +174,11 @@ export async function verifyCredentials(email: string, password: string): Promis
   return safeEqualHex(hashPassword(password, account.salt), account.passwordHash) ? account : null;
 }
 
-/** Re-hash and store a new password with a fresh salt. */
+/** Re-hash and store a new password with a fresh salt; bumps the session epoch. */
 export async function setPassword(
   id: string,
   newPassword: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; sessionEpoch: number } | { ok: false; error: string }> {
   const store = await getStore();
   const account = await store.byId(id);
   if (!account) return { ok: false, error: "Unknown account" };
@@ -184,8 +186,9 @@ export async function setPassword(
   if (problem) return { ok: false, error: problem };
   account.salt = crypto.randomBytes(16).toString("hex");
   account.passwordHash = hashPassword(newPassword, account.salt);
+  account.sessionEpoch = (account.sessionEpoch ?? 0) + 1; // revoke old sessions
   await store.save(account);
-  return { ok: true };
+  return { ok: true, sessionEpoch: account.sessionEpoch };
 }
 
 export async function findAccount(id: string): Promise<Account | undefined> {
@@ -257,6 +260,7 @@ export async function consumeResetToken(
   account.passwordHash = hashPassword(newPassword, account.salt);
   account.resetTokenHash = undefined;
   account.resetTokenExp = undefined;
+  account.sessionEpoch = (account.sessionEpoch ?? 0) + 1; // revoke old sessions
   await store.save(account);
   return { ok: true };
 }

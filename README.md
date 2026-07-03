@@ -85,7 +85,10 @@ into a signed-up product:
   never leaves the tab — no curl needed for day-to-day billing.
 - **Account lifecycle** — signup sends a verification email; users manage their
   password at **`/account`** (change password, resend verification) and recover
-  a lost one via **`/forgot`** → **`/reset`** (single-use, 1-hour tokens). Email
+  a lost one via **`/forgot`** → **`/reset`** (single-use, 1-hour tokens).
+  Changing or resetting a password **revokes every other session** (a per-account
+  epoch is signed into the cookie and checked on every request, including the
+  data plane — a stolen cookie stops working the moment the password changes). Email
   goes through Resend (`RESEND_API_KEY`) or a JSON webhook
   (`ENGINE_ROOM_EMAIL_WEBHOOK`); with no provider, reset and verification links
   appear in the `/admin` "Mail to relay" panel so a single-node self-host still

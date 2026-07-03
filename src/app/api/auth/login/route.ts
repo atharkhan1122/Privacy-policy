@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   }
   const account = await verifyCredentials(body.email ?? "", body.password ?? "");
   if (!account) return NextResponse.json({ error: "Wrong email or password" }, { status: 401 });
-  const token = await signSession(account.id, Date.now());
+  const token = await signSession(account.id, Date.now(), account.sessionEpoch ?? 0);
   return NextResponse.json(
     { account: toPublic(account) },
     { headers: { "set-cookie": sessionCookie(token) } }

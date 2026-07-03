@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { eventHistory } from "@/core/events";
 import { agentActions } from "@/core/agent";
 import { bootWorld, customerById, shipmentById, worldSnapshot } from "@/core/store";
-import { activateTenant, initPersistence, resolveTenant } from "@/server/persistence";
+import { activateTenant, apiKeyTenant, initPersistence, resolveTenant } from "@/server/persistence";
+import { authEnabled, tenantForAccount } from "@/server/accounts";
+import { currentAccount } from "@/server/current-user";
 import type { Shipment } from "@/core/types";
 
 /**
@@ -28,14 +30,29 @@ export function notFound(message: string) {
 
 /**
  * Every handler calls this first: seed, arm persistence, and — given the
- * request — swap in the world belonging to the caller's tenant (keyed by
- * API key; see src/server/persistence.ts § Tenancy).
+ * request — swap in the world belonging to the caller's tenant.
+ *
+ * Under auth the tenant is resolved through the (epoch-checked) session, so a
+ * revoked or stale cookie can never address its account's world — it falls back
+ * to a partner API key if one is presented, else the default world. Without auth
+ * it's keyed by API key (see src/server/persistence.ts § Tenancy).
  */
-export function ensureWorld(request?: Request) {
+export async function ensureWorld(request?: Request) {
   bootWorld();
   initPersistence();
-  if (request) activateTenant(resolveTenant(request));
+  if (request) activateTenant(await tenantFor(request));
   return worldSnapshot();
+}
+
+async function tenantFor(request: Request): Promise<string> {
+  if (authEnabled()) {
+    const account = await currentAccount(request); // verifies the revocation epoch
+    if (account) return tenantForAccount(account.id);
+    // No valid session — a partner API key may still address its own tenant,
+    // but a revoked cookie (header injected pre-check) must not.
+    return apiKeyTenant(request) ?? "default";
+  }
+  return resolveTenant(request);
 }
 
 /** The shipment object with every derived view attached — the API's atom. */
@@ -46,7 +63,7 @@ export function shipmentDetail(id: string) {
 }
 
 export function withViews(shipment: Shipment) {
-  const world = ensureWorld();
+  const world = worldSnapshot(); // tenant already active from the handler's ensureWorld
   return {
     ...shipment,
     customer: customerById(shipment.customerId) ?? null,

@@ -12,7 +12,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  ensureWorld(request);
+  await ensureWorld(request);
   const { id } = await params;
   if (!shipmentById(id)) return notFound(`Unknown shipment ${id}`);
 
