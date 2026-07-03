@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { convertIntake, customers, parseIntakeSmart, submitIntake } from "@/core/store";
+import { customers } from "@/core/store";
+import { convertIntake, parseIntakeSmart, submitIntake } from "@/core/commands";
 import { useWorld } from "@/core/use-world";
 import { Bar, Btn, Mono, Panel, timeAgo } from "@/components/ui";
 import type { ExtractedField, IntakeChannel } from "@/core/types";
@@ -45,9 +46,8 @@ function Composer() {
   function send() {
     const text = raw.trim();
     if (!text) return;
-    const msg = submitIntake({ channel, from, raw: text });
     setRaw("");
-    void parseIntakeSmart(msg.id);
+    void submitIntake({ channel, from, raw: text }).then((msg) => parseIntakeSmart(msg.id));
   }
 
   return (
@@ -174,7 +174,7 @@ export default function IntakePage() {
                   </Btn>
                 )}
                 {msg.status === "PARSED" && (
-                  <Btn tone="magenta" onClick={() => convertIntake(msg.id)}>
+                  <Btn tone="magenta" onClick={() => void convertIntake(msg.id)}>
                     Convert → shipment
                   </Btn>
                 )}

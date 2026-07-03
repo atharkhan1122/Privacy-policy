@@ -97,12 +97,19 @@ export function bootWorld(): void {
 // event drawn from the active fleet.
 
 let tickerStarted = false;
+let tickerEnabled = true;
 let tick = 0;
+
+/** Server-sync turns the local ambience off — the real world provides it. */
+export function setTickerEnabled(enabled: boolean): void {
+  tickerEnabled = enabled;
+}
 
 function startTicker(): void {
   if (tickerStarted || typeof window === "undefined") return;
   tickerStarted = true;
   setInterval(() => {
+    if (!tickerEnabled) return;
     tick++;
     const inFlight = world.shipments.filter(
       (s) => s.state === "TRANSIT" || s.state === "CUSTOMS"

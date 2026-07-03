@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { recentEvents, resolveException } from "@/core/store";
+import { recentEvents } from "@/core/store";
+import { resolveException } from "@/core/commands";
 import { useWorld } from "@/core/use-world";
 import { agentActions } from "@/core/agent";
 import { priorityQueue, type TaskKind } from "@/core/priority";
@@ -182,7 +183,7 @@ export default function ControlTower() {
                     <Link href={`/shipments/${s.id}`} className="font-mono text-xs text-danger hover:underline">
                       {s.id}
                     </Link>
-                    <Btn tone="instr" onClick={() => resolveException(s.id)}>
+                    <Btn tone="instr" onClick={() => void resolveException(s.id)}>
                       Execute recovery
                     </Btn>
                   </div>

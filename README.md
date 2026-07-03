@@ -94,6 +94,7 @@ rank.
 | The API plane | `src/app/api/**` | The full domain as REST commands — intake → parse → convert → quote → accept → advance, night shift, events, graph — plus a WhatsApp Business webhook receiver. See [docs/API.md](./docs/API.md) |
 | The durable world | `src/server/persistence.ts` | Server world hydrates from a disk snapshot on boot and atomically re-saves after every mutation — state survives restarts; the snapshot/restore seam is where Postgres plugs in |
 | Multi-tenancy | `src/server/persistence.ts` § Tenancy | One isolated, separately-persisted world per API key (`erk_key:tenant`) — the covenant's "your data is yours" enforced structurally, not by convention |
+| One shared world | `src/core/server-sync.ts`, `src/core/commands.ts` | The browser terminal is a live client of the server world: hydrates from `/api/state`, re-pulls on SSE `world-changed` frames, and every button routes through the API — two tabs, curl, and the WhatsApp webhook see the same world. Falls back to local demo mode when no server world answers (the header badge says which) |
 
 The domain core is covered by a Vitest suite (`src/core/*.test.ts` — lifecycle,
 intake extraction, pricing & surcharges, agent autonomy policy, finance, graph

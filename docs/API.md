@@ -58,7 +58,10 @@ replaces the swap with row-level security (ARCHITECTURE.md § 4).
 | GET | `/api/shipments` | The fleet. Optional `?state=INQUIRY\|QUOTE\|BOOKING\|DOCUMENTATION\|TRANSIT\|CUSTOMS\|SETTLEMENT` |
 | GET | `/api/shipments/:id` | The object with every derived view attached: customer, quotes, documents, invoices, tracking, agent actions, events |
 | GET | `/api/events?limit=50` | The event bus, newest first (max 500) |
-| GET | `/api/events/stream?replay=20` | The event bus over **Server-Sent Events**: a `hello` frame, the last `replay` events (max 100), then every live event as it is emitted, with 15s heartbeats. `curl -N localhost:3000/api/events/stream?replay=20` and watch commands land in real time |
+| GET | `/api/events/stream?replay=20` | The event bus over **Server-Sent Events**: a `hello` frame, the last `replay` events (max 100), then every live event as it is emitted, plus a `world-changed` frame on every mutation (the sync heartbeat server-synced UIs re-pull on) and 15s heartbeats |
+| GET | `/api/state` | The caller's tenant world as one snapshot document — what the browser terminal hydrates from in server-sync mode |
+| POST | `/api/agent/actions/:id/approve` · `/reject` | The one-tap human decision, over HTTP |
+| GET/POST | `/api/agent/autonomy` | Read the trust dial / turn a notch (`{taskType, level}`) |
 | GET | `/api/quotes` | Every quote on the wire |
 | GET | `/api/intake` | The raw inbox |
 | GET | `/api/graph` | Trade intelligence: lane aggregates (already privacy-floored) + carrier scorecards |

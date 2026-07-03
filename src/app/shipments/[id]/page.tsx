@@ -52,12 +52,12 @@ export default function ShipmentDetail({ params }: { params: Promise<{ id: strin
         </div>
         <div className="flex gap-2">
           {shipment.state === "INQUIRY" && (
-            <Btn tone="instr" onClick={() => quoteShipment(shipment.id)}>
+            <Btn tone="instr" onClick={() => void quoteShipment(shipment.id)}>
               Run quote engine
             </Btn>
           )}
           {next && shipment.state !== "INQUIRY" && (
-            <Btn tone="line" onClick={() => advanceShipment(shipment.id)} disabled={!canAdvance(shipment)}>
+            <Btn tone="line" onClick={() => void advanceShipment(shipment.id)} disabled={!canAdvance(shipment)}>
               Advance → {STATE_LABELS[next]}
             </Btn>
           )}
@@ -207,7 +207,7 @@ export default function ShipmentDetail({ params }: { params: Promise<{ id: strin
                     </div>
                     {q.verdict === "PENDING" && (
                       <div className="mt-3">
-                        <Btn tone="magenta" onClick={() => acceptQuote(q.id, o.id)}>
+                        <Btn tone="magenta" onClick={() => void acceptQuote(q.id, o.id)}>
                           Customer accepts → book
                         </Btn>
                       </div>

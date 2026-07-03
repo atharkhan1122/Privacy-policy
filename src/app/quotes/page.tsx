@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { acceptQuote, quoteShipment, customerById } from "@/core/store";
+import { customerById } from "@/core/store";
+import { acceptQuote, quoteShipment } from "@/core/commands";
 import { useWorld } from "@/core/use-world";
 import { suggestMarginPct, winProbability, knownLanes } from "@/core/quote-engine";
 import { laneByKey } from "@/core/trade-graph";
@@ -43,7 +44,7 @@ export default function QuotesPage() {
                     {customer?.name} · {s.origin} → {s.destination} · {s.cargo.weightKg.toLocaleString()} kg
                   </span>
                 </div>
-                <Btn tone="instr" onClick={() => quoteShipment(s.id)}>
+                <Btn tone="instr" onClick={() => void quoteShipment(s.id)}>
                   Quote in &lt;60s
                 </Btn>
               </div>
@@ -86,7 +87,7 @@ export default function QuotesPage() {
                       <div className="flex items-center gap-3">
                         <span className="font-mono tabular-nums text-foam">{usd(o.sellTotal)}</span>
                         {q.verdict === "PENDING" && (
-                          <Btn tone="magenta" onClick={() => acceptQuote(q.id, o.id)}>
+                          <Btn tone="magenta" onClick={() => void acceptQuote(q.id, o.id)}>
                             Accept
                           </Btn>
                         )}

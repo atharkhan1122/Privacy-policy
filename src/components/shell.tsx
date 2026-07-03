@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Mono } from "./ui";
 import { AssistantDrawer } from "./assistant";
 import { useWorld } from "@/core/use-world";
+import { initServerSync, syncMode } from "@/core/server-sync";
 
 const NAV: { href: string; label: string; key: string; hint: string }[] = [
   { href: "/", label: "Control Tower", key: "t", hint: "live fleet + exceptions" },
@@ -128,6 +129,7 @@ function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void 
 }
 
 export function Shell({ children }: { children: React.ReactNode }) {
+  useWorld(); // re-render on store changes — the sync badge depends on it
   const pathname = usePathname();
   const router = useRouter();
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -167,6 +169,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onKey]);
+
+  useEffect(() => {
+    initServerSync();
+  }, []);
 
   return (
     <div className="relative z-10 flex min-h-screen">
@@ -212,6 +218,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             <span className="live-dot inline-block h-2 w-2 rounded-full bg-instr" />
             <Mono className="text-foam-soft">All systems nominal · event bus live</Mono>
+            <Mono className={syncMode() === "server" ? "text-instr" : "text-foam-soft/60"}>
+              · world: {syncMode() === "server" ? "server-synced" : "local demo"}
+            </Mono>
           </div>
           <div className="flex items-center gap-4">
             <button

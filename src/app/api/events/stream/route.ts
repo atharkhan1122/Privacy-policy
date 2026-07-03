@@ -1,5 +1,6 @@
 import { ensureWorld } from "@/server/api";
 import { eventHistory, subscribe } from "@/core/events";
+import { subscribeWorld } from "@/core/store";
 import { activeTenant, resolveTenant } from "@/server/persistence";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +31,7 @@ export async function GET(request: Request) {
 
   const encoder = new TextEncoder();
   let unsubscribe: (() => void) | undefined;
+  let unsubscribeWorld: (() => void) | undefined;
   let heartbeat: ReturnType<typeof setInterval> | undefined;
 
   const stream = new ReadableStream({
@@ -60,6 +62,13 @@ export async function GET(request: Request) {
         push(JSON.stringify(event), "shipment-event");
       });
 
+      // Not every mutation emits a bus event (intake arrivals, parses) — the
+      // world-changed frame is the sync heartbeat server-synced UIs re-pull on.
+      unsubscribeWorld = subscribeWorld(() => {
+        if (activeTenant() !== tenant) return;
+        push("{}", "world-changed");
+      });
+
       heartbeat = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(`: heartbeat ${Date.now()}\n\n`));
@@ -71,6 +80,7 @@ export async function GET(request: Request) {
 
       const close = () => {
         unsubscribe?.();
+        unsubscribeWorld?.();
         if (heartbeat) clearInterval(heartbeat);
         try {
           controller.close();
@@ -82,6 +92,7 @@ export async function GET(request: Request) {
     },
     cancel() {
       unsubscribe?.();
+      unsubscribeWorld?.();
       if (heartbeat) clearInterval(heartbeat);
     },
   });

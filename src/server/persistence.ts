@@ -1,22 +1,12 @@
 import fs from "fs";
 import path from "path";
+import { bootWorld, subscribeWorld } from "@/core/store";
 import {
-  bootWorld,
-  restoreStore,
-  storeSnapshot,
-  subscribeWorld,
-  type StoreSnapshot,
-} from "@/core/store";
-import { agentSnapshot, restoreAgent, type AgentSnapshot } from "@/core/agent";
-import { eventsSnapshot, restoreEvents, type EventsSnapshot } from "@/core/events";
-import {
-  quoteEngineSnapshot,
-  restoreQuoteEngine,
-  type QuoteEngineSnapshot,
-} from "@/core/quote-engine";
-import { graphSnapshot, restoreGraph } from "@/core/trade-graph";
-import { documentSeq, restoreDocumentSeq } from "@/core/documents";
-import { invoiceSeq, restoreInvoiceSeq } from "@/core/finance";
+  SNAPSHOT_VERSION,
+  applySnapshot,
+  captureSnapshot,
+  type WorldSnapshotFile,
+} from "@/core/snapshot";
 import { parseApiKeys, presentedKey } from "@/server/api-keys";
 import { safeEqual } from "@/server/safe-equal";
 
@@ -35,20 +25,7 @@ import { safeEqual } from "@/server/safe-equal";
  * untouched — persistence applies to the server process only.
  */
 
-const SNAPSHOT_VERSION = 1;
 const SAVE_DEBOUNCE_MS = 300;
-
-interface WorldSnapshotFile {
-  version: number;
-  savedAt: string;
-  store: StoreSnapshot;
-  agent: AgentSnapshot;
-  events: EventsSnapshot;
-  quoteEngine: QuoteEngineSnapshot;
-  graph: Record<string, number>;
-  documentSeq: number;
-  invoiceSeq: number;
-}
 
 // ─── Tenancy ─────────────────────────────────────────────────────────────────
 // One isolated world per API key. The active tenant's world lives in the
@@ -101,30 +78,6 @@ export function dataFile(tenant = activeTenantId): string {
 
 export function persistenceEnabled(): boolean {
   return process.env.ENGINE_ROOM_PERSIST !== "0";
-}
-
-function captureSnapshot(): WorldSnapshotFile {
-  return {
-    version: SNAPSHOT_VERSION,
-    savedAt: new Date().toISOString(),
-    store: storeSnapshot(),
-    agent: agentSnapshot(),
-    events: eventsSnapshot(),
-    quoteEngine: quoteEngineSnapshot(),
-    graph: graphSnapshot(),
-    documentSeq: documentSeq(),
-    invoiceSeq: invoiceSeq(),
-  };
-}
-
-function applySnapshot(snapshot: WorldSnapshotFile): void {
-  restoreAgent(snapshot.agent);
-  restoreEvents(snapshot.events);
-  restoreQuoteEngine(snapshot.quoteEngine);
-  restoreGraph(snapshot.graph);
-  restoreDocumentSeq(snapshot.documentSeq);
-  restoreInvoiceSeq(snapshot.invoiceSeq);
-  restoreStore(snapshot.store); // last — its notify() triggers the first save
 }
 
 /** Write the active tenant's world snapshot atomically (tmp + rename). */

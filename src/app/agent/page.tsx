@@ -5,12 +5,9 @@ import {
   AUTONOMY_LABELS,
   TASK_LABELS,
   agentActions,
-  approve,
   autonomyGrants,
-  reject,
-  setAutonomyLevel,
 } from "@/core/agent";
-import { forceNotify, runNightShift } from "@/core/store";
+import { approveAction, rejectAction, runNightShift, setAutonomy } from "@/core/commands";
 import { useWorld } from "@/core/use-world";
 import { Btn, Mono, Panel, timeAgo, usd } from "@/components/ui";
 import type { AutonomyLevel } from "@/core/types";
@@ -70,10 +67,7 @@ export default function AgentPage() {
                     {([1, 2, 3, 4] as AutonomyLevel[]).map((lvl) => (
                       <button
                         key={lvl}
-                        onClick={() => {
-                          setAutonomyLevel(g.taskType, lvl);
-                          forceNotify();
-                        }}
+                        onClick={() => void setAutonomy(g.taskType, lvl)}
                         title={AUTONOMY_LABELS[lvl]}
                         className={`h-6 w-6 border font-mono text-[10px] ${
                           g.level === lvl
@@ -104,7 +98,7 @@ export default function AgentPage() {
         title="The night shift — Deck 06, executable"
         fig="FIG.1b"
         actions={
-          <Btn tone="magenta" onClick={() => runNightShift()}>
+          <Btn tone="magenta" onClick={() => void runNightShift()}>
             ▶ Run 8h autonomous shift
           </Btn>
         }
@@ -183,19 +177,13 @@ export default function AgentPage() {
                 <div className="flex gap-2">
                   <Btn
                     tone="instr"
-                    onClick={() => {
-                      approve(a.id);
-                      forceNotify();
-                    }}
+                    onClick={() => void approveAction(a.id)}
                   >
                     Approve
                   </Btn>
                   <Btn
                     tone="line"
-                    onClick={() => {
-                      reject(a.id);
-                      forceNotify();
-                    }}
+                    onClick={() => void rejectAction(a.id)}
                   >
                     Reject
                   </Btn>
