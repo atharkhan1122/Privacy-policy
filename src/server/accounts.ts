@@ -148,6 +148,21 @@ export function verifyCredentials(email: string, password: string): Account | nu
   return safeEqualHex(hashPassword(password, account.salt), account.passwordHash) ? account : null;
 }
 
+export const MIN_PASSWORD_LENGTH = 8;
+
+/** Re-hash and store a new password with a fresh salt. */
+export function setPassword(id: string, newPassword: string): { ok: true } | { ok: false; error: string } {
+  const account = findAccount(id);
+  if (!account) return { ok: false, error: "Unknown account" };
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    return { ok: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` };
+  }
+  account.salt = crypto.randomBytes(16).toString("hex");
+  account.passwordHash = hashPassword(newPassword, account.salt);
+  persist();
+  return { ok: true };
+}
+
 export function findAccount(id: string): Account | undefined {
   load();
   return accounts.get(id);

@@ -51,7 +51,11 @@ function AccountBadge() {
           Upgrade
         </Link>
       )}
-      {email && <Mono className="text-foam-soft/70">{email}</Mono>}
+      {email && (
+        <Link href="/account" className="text-foam-soft/70 hover:text-foam">
+          <Mono>{email}</Mono>
+        </Link>
+      )}
       <button
         onClick={logout}
         className="font-mono text-[10px] uppercase tracking-[0.12em] text-foam-soft/70 hover:text-danger"

@@ -11,6 +11,7 @@ import {
   toPublic,
   verifyCredentials,
 } from "@/server/accounts";
+import { POST as changePassword } from "@/app/api/auth/change-password/route";
 import {
   SESSION_COOKIE,
   clearedSessionCookie,
@@ -112,6 +113,37 @@ describe("session tokens", () => {
     expect(sessionCookie("abc")).toContain(`${SESSION_COOKIE}=abc`);
     expect(sessionCookie("abc")).toContain("HttpOnly");
     expect(clearedSessionCookie()).toContain("Max-Age=0");
+  });
+});
+
+describe("change password", () => {
+  const req = (cookie: string | undefined, body: unknown) =>
+    new Request("http://engine.room/api/auth/change-password", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}) },
+      body: JSON.stringify(body),
+    });
+
+  it("rotates the password with the right current one and rejects the old", async () => {
+    const email = uniqueEmail();
+    const created = createAccount(email, "originalpass");
+    if (!created.ok) throw new Error("setup");
+    const cookie = `${SESSION_COOKIE}=${await signSession(created.account.id, Date.now())}`;
+
+    // wrong current password → 401
+    expect((await changePassword(req(cookie, { currentPassword: "nope12345", newPassword: "brandnewpass" }))).status).toBe(401);
+    // too-short new password → 400
+    expect((await changePassword(req(cookie, { currentPassword: "originalpass", newPassword: "short" }))).status).toBe(400);
+    // success → 200
+    expect((await changePassword(req(cookie, { currentPassword: "originalpass", newPassword: "brandnewpass" }))).status).toBe(200);
+
+    // old password no longer works; new one does
+    expect(verifyCredentials(email, "originalpass")).toBeNull();
+    expect(verifyCredentials(email, "brandnewpass")).not.toBeNull();
+  });
+
+  it("401s without a session", async () => {
+    expect((await changePassword(req(undefined, { currentPassword: "x", newPassword: "y" }))).status).toBe(401);
   });
 });
 
