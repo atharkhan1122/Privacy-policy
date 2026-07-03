@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const result = createAccount(body.email ?? "", body.password ?? "");
+  const result = await createAccount(body.email ?? "", body.password ?? "");
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
   await sendVerificationEmail(result.account, baseUrlFrom(request));
   const token = await signSession(result.account.id, Date.now());

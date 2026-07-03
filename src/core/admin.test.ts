@@ -51,9 +51,9 @@ describe("admin console API", () => {
   });
 
   it("lists accounts (no credential material) with the admin key", async () => {
-    const created = createAccount(`op${Date.now()}@meridian.test`, "correcthorse");
+    const created = await createAccount(`op${Date.now()}@meridian.test`, "correcthorse");
     if (!created.ok) throw new Error("setup");
-    requestUpgrade(created.account.id, "ER-PRO-REF");
+    await requestUpgrade(created.account.id, "ER-PRO-REF");
 
     const res = await listAccountsRoute(listReq("operator-secret"));
     expect(res.status).toBe(200);
@@ -67,7 +67,7 @@ describe("admin console API", () => {
   });
 
   it("confirms a payment → Pro and can downgrade, only with the key", async () => {
-    const created = createAccount(`up${Date.now()}@meridian.test`, "correcthorse");
+    const created = await createAccount(`up${Date.now()}@meridian.test`, "correcthorse");
     if (!created.ok) throw new Error("setup");
     const id = created.account.id;
 
@@ -75,11 +75,11 @@ describe("admin console API", () => {
 
     const up = await confirmRoute(confirmReq({ accountId: id }, "operator-secret"));
     expect(up.status).toBe(200);
-    expect(findAccount(id)?.plan).toBe("PRO");
+    expect((await findAccount(id))?.plan).toBe("PRO");
 
     const down = await confirmRoute(confirmReq({ accountId: id, plan: "FREE" }, "operator-secret"));
     expect(down.status).toBe(200);
-    expect(findAccount(id)?.plan).toBe("FREE");
+    expect((await findAccount(id))?.plan).toBe("FREE");
   });
 
   it("404s an unknown account", async () => {

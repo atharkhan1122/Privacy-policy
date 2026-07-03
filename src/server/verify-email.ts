@@ -8,7 +8,7 @@ export function baseUrlFrom(request: Request): string {
 
 /** Mint a verification token and deliver the confirm-your-email link. */
 export async function sendVerificationEmail(account: Account, baseUrl: string): Promise<void> {
-  const token = createVerifyToken(account.id);
+  const token = await createVerifyToken(account.id);
   if (!token) return;
   const link = `${baseUrl}/api/auth/verify?token=${token}`;
   await deliver({

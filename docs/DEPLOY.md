@@ -199,21 +199,27 @@ Restore by extracting back into the volume before starting the container.
 
 ## Scaling & limits
 
-This is a single-node design, and honestly so:
+The account plane can already run on Postgres; the world plane is still
+single-node.
 
-- **One writer.** The world is an in-process singleton persisted to a file;
-  tenancy swaps it per request. Run **one replica** (the k8s manifest uses
-  `Recreate`). Two replicas would race the file.
+- **Accounts → Postgres (available now).** Set `DATABASE_URL` and the accounts
+  store moves from the file to Postgres (the `accounts` table is created on first
+  use). This is the shared, durable store that lets the auth plane run across
+  multiple nodes. Unset, it stays file-backed — same behaviour as before.
+- **World: one writer.** The shipment world is still an in-process singleton
+  persisted to a file, swapped per tenant per request. Run **one replica** for
+  the world (the k8s manifest uses `Recreate`); two would race the file.
 - **In-memory bits.** The rate limiter and the mail-relay outbox live in process
-  memory — they reset on restart and aren't shared across nodes.
-- **When you outgrow it:** the persistence layer is a seam (see
-  [`ARCHITECTURE.md`](../ARCHITECTURE.md) § 1). Swapping the JSON snapshot for
-  Postgres (row-level tenancy) is what unlocks multiple nodes; the domain and
-  API above that line don't change. Move accounts to the same store and put a
-  real email provider behind the mailer seam.
+  memory — they reset on restart and aren't shared across nodes. A real email
+  provider (`RESEND_API_KEY`) removes the outbox's role entirely.
+- **Finishing multi-node:** the world persistence is the same seam (see
+  [`ARCHITECTURE.md`](../ARCHITECTURE.md) § 1) — moving the per-tenant snapshot
+  into Postgres is the remaining step; the domain and API above that line don't
+  change.
 
 For a pilot with one operator and a book of customers, the single node is the
-right amount of machine.
+right amount of machine — and accounts on Postgres already give you a durable,
+shared identity store when you want it.
 
 ---
 

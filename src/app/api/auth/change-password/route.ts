@@ -21,10 +21,10 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  if (!verifyCredentials(account.email, body.currentPassword ?? "")) {
+  if (!(await verifyCredentials(account.email, body.currentPassword ?? ""))) {
     return NextResponse.json({ error: "Current password is wrong" }, { status: 401 });
   }
-  const result = setPassword(account.id, body.newPassword ?? "");
+  const result = await setPassword(account.id, body.newPassword ?? "");
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
 
   const token = await signSession(account.id, Date.now());

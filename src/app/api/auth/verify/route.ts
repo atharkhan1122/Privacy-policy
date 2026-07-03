@@ -13,6 +13,6 @@ export async function GET(request: Request) {
   const base = baseUrlFrom(request);
   if (!authEnabled()) return NextResponse.redirect(`${base}/login`);
   const token = new URL(request.url).searchParams.get("token") ?? "";
-  const result = consumeVerifyToken(token);
+  const result = await consumeVerifyToken(token);
   return NextResponse.redirect(`${base}/account?verified=${result.ok ? "1" : "0"}`);
 }

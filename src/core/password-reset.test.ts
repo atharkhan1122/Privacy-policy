@@ -65,20 +65,20 @@ describe("password reset", () => {
 
   it("delivers a link and lets the user set a new password", async () => {
     const e = email();
-    createAccount(e, "originalpass");
+    await createAccount(e, "originalpass");
     expect((await forgot(forgotReq(e))).status).toBe(200);
 
     const token = linkTokenFor(e);
     const done = await reset(resetReq(token, "brandnewpass"));
     expect(done.status).toBe(200);
 
-    expect(verifyCredentials(e, "originalpass")).toBeNull();
-    expect(verifyCredentials(e, "brandnewpass")).not.toBeNull();
+    expect(await verifyCredentials(e, "originalpass")).toBeNull();
+    expect(await verifyCredentials(e, "brandnewpass")).not.toBeNull();
   });
 
   it("rejects a bad token and a spent token", async () => {
     const e = email();
-    createAccount(e, "originalpass");
+    await createAccount(e, "originalpass");
     await forgot(forgotReq(e));
     const token = linkTokenFor(e);
 
@@ -90,7 +90,7 @@ describe("password reset", () => {
 
   it("rejects a too-short new password", async () => {
     const e = email();
-    createAccount(e, "originalpass");
+    await createAccount(e, "originalpass");
     await forgot(forgotReq(e));
     const token = linkTokenFor(e);
     expect((await reset(resetReq(token, "short"))).status).toBe(400);

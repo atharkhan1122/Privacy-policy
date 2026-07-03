@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ authEnabled: false, plans: PLANS });
   }
   const accountId = await verifySession(cookie(request, SESSION_COOKIE));
-  const account = accountId ? findAccount(accountId) : undefined;
+  const account = accountId ? await findAccount(accountId) : undefined;
   if (!account) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   return NextResponse.json({
     authEnabled: true,

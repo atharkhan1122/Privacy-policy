@@ -52,6 +52,7 @@ email, and your first Payoneer payment. Config lives in
 | `ANTHROPIC_API_KEY` | Intake extraction through Claude |
 | `ENGINE_ROOM_RATE_LIMIT` | Requests/min per caller (off when unset) |
 | `ENGINE_ROOM_DATA` / `ENGINE_ROOM_PERSIST` | Snapshot path / `0` disables persistence |
+| `DATABASE_URL` | Move the accounts store to Postgres (unset → file-backed); table auto-created |
 
 ### Accounts, plans & manual Payoneer billing
 

@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   if (denied) return NextResponse.json({ error: denied.error }, { status: denied.status });
   return NextResponse.json({
     authEnabled: authEnabled(),
-    accounts: listAccounts(),
+    accounts: await listAccounts(),
     emailConfigured: emailConfigured(),
     outbox: outbox(),
   });

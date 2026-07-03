@@ -50,45 +50,45 @@ let counter = 0;
 const uniqueEmail = () => `pilot${Date.now()}_${counter++}@meridian.test`;
 
 describe("accounts", () => {
-  it("creates a FREE account, rejects weak passwords and duplicates", () => {
+  it("creates a FREE account, rejects weak passwords and duplicates", async () => {
     const email = uniqueEmail();
-    const weak = createAccount(email, "short");
+    const weak = await createAccount(email, "short");
     expect(weak.ok).toBe(false);
 
-    const created = createAccount(email, "longenough");
+    const created = await createAccount(email, "longenough");
     expect(created.ok).toBe(true);
     if (created.ok) expect(created.account.plan).toBe("FREE");
 
-    const dup = createAccount(email, "longenough");
+    const dup = await createAccount(email, "longenough");
     expect(dup.ok).toBe(false);
 
     // over-long passwords are rejected (scrypt CPU-DoS guard)
-    expect(createAccount(uniqueEmail(), "a".repeat(500)).ok).toBe(false);
+    expect((await createAccount(uniqueEmail(), "a".repeat(500))).ok).toBe(false);
   });
 
-  it("verifies credentials only for the right password", () => {
+  it("verifies credentials only for the right password", async () => {
     const email = uniqueEmail();
-    createAccount(email, "correcthorse");
-    expect(verifyCredentials(email, "correcthorse")).not.toBeNull();
-    expect(verifyCredentials(email, "wrongpass1")).toBeNull();
-    expect(verifyCredentials("nobody@x.test", "correcthorse")).toBeNull();
+    await createAccount(email, "correcthorse");
+    expect(await verifyCredentials(email, "correcthorse")).not.toBeNull();
+    expect(await verifyCredentials(email, "wrongpass1")).toBeNull();
+    expect(await verifyCredentials("nobody@x.test", "correcthorse")).toBeNull();
   });
 
-  it("upgrades and downgrades the plan, clearing the upgrade request on Pro", () => {
-    const created = createAccount(uniqueEmail(), "correcthorse");
+  it("upgrades and downgrades the plan, clearing the upgrade request on Pro", async () => {
+    const created = await createAccount(uniqueEmail(), "correcthorse");
     if (!created.ok) throw new Error("setup");
     const id = created.account.id;
-    requestUpgrade(id, "ER-PRO-TEST");
-    expect(findAccount(id)?.upgradeRequestedAt).toBeTruthy();
-    expect(findAccount(id)?.payoneerReference).toBe("ER-PRO-TEST");
+    await requestUpgrade(id, "ER-PRO-TEST");
+    expect((await findAccount(id))?.upgradeRequestedAt).toBeTruthy();
+    expect((await findAccount(id))?.payoneerReference).toBe("ER-PRO-TEST");
 
-    setPlan(id, "PRO");
-    expect(findAccount(id)?.plan).toBe("PRO");
-    expect(findAccount(id)?.upgradeRequestedAt).toBeUndefined();
+    await setPlan(id, "PRO");
+    expect((await findAccount(id))?.plan).toBe("PRO");
+    expect((await findAccount(id))?.upgradeRequestedAt).toBeUndefined();
   });
 
-  it("exposes a tenant per account and never leaks the hash", () => {
-    const created = createAccount(uniqueEmail(), "correcthorse");
+  it("exposes a tenant per account and never leaks the hash", async () => {
+    const created = await createAccount(uniqueEmail(), "correcthorse");
     if (!created.ok) throw new Error("setup");
     const pub = toPublic(created.account);
     expect(pub.tenant).toBe(`t_${created.account.id}`);
@@ -135,7 +135,7 @@ describe("change password", () => {
 
   it("rotates the password with the right current one and rejects the old", async () => {
     const email = uniqueEmail();
-    const created = createAccount(email, "originalpass");
+    const created = await createAccount(email, "originalpass");
     if (!created.ok) throw new Error("setup");
     const cookie = `${SESSION_COOKIE}=${await signSession(created.account.id, Date.now())}`;
 
@@ -147,8 +147,8 @@ describe("change password", () => {
     expect((await changePassword(req(cookie, { currentPassword: "originalpass", newPassword: "brandnewpass" }))).status).toBe(200);
 
     // old password no longer works; new one does
-    expect(verifyCredentials(email, "originalpass")).toBeNull();
-    expect(verifyCredentials(email, "brandnewpass")).not.toBeNull();
+    expect(await verifyCredentials(email, "originalpass")).toBeNull();
+    expect(await verifyCredentials(email, "brandnewpass")).not.toBeNull();
   });
 
   it("401s without a session", async () => {

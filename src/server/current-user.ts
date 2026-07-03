@@ -15,5 +15,5 @@ export function readCookie(request: Request, name: string): string | undefined {
 export async function currentAccount(request: Request): Promise<Account | null> {
   if (!authEnabled()) return null;
   const id = await verifySession(readCookie(request, SESSION_COOKIE));
-  return (id && findAccount(id)) || null;
+  return (id ? await findAccount(id) : null) ?? null;
 }

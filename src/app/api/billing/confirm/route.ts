@@ -21,9 +21,9 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  if (!body.accountId || !findAccount(body.accountId)) {
+  if (!body.accountId || !(await findAccount(body.accountId))) {
     return NextResponse.json({ error: "Unknown accountId" }, { status: 404 });
   }
-  const updated = setPlan(body.accountId, body.plan ?? "PRO");
+  const updated = await setPlan(body.accountId, body.plan ?? "PRO");
   return NextResponse.json({ account: updated ? toPublic(updated) : null });
 }

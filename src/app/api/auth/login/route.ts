@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const account = verifyCredentials(body.email ?? "", body.password ?? "");
+  const account = await verifyCredentials(body.email ?? "", body.password ?? "");
   if (!account) return NextResponse.json({ error: "Wrong email or password" }, { status: 401 });
   const token = await signSession(account.id, Date.now());
   return NextResponse.json(

@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   if (account.plan === "PRO") return NextResponse.json({ error: "Already on Pro" }, { status: 400 });
 
   const reference = `ER-PRO-${account.id}-${Date.now().toString(36).toUpperCase()}`;
-  const updated = requestUpgrade(account.id, reference);
+  const updated = await requestUpgrade(account.id, reference);
   const payoneerLink = process.env.ENGINE_ROOM_PAYONEER_LINK ?? "";
 
   return NextResponse.json({

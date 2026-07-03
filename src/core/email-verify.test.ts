@@ -59,7 +59,7 @@ describe("email verification", () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.account.emailVerified).toBe(false);
-    expect(findAccount(body.account.id)?.emailVerified).toBeFalsy();
+    expect((await findAccount(body.account.id))?.emailVerified).toBeFalsy();
     expect(verifyLinkFor(e)).toContain("token=");
   });
 
@@ -76,7 +76,7 @@ describe("email verification", () => {
     // redirects to /account?verified=1
     expect(res.status).toBeGreaterThanOrEqual(300);
     expect(res.headers.get("location")).toContain("verified=1");
-    expect(findAccount(created.account.id)?.emailVerified).toBe(true);
+    expect((await findAccount(created.account.id))?.emailVerified).toBe(true);
 
     // token cleared → a second use fails
     const again = await verify(req(token));

@@ -61,7 +61,7 @@ describe("plan gating (auth on)", () => {
   async function freeSession() {
     process.env.ENGINE_ROOM_AUTH = "1";
     process.env.ENGINE_ROOM_DATA = path.join(dataDir, `world-${Date.now()}.json`);
-    const created = createAccount(`free${Date.now()}@meridian.test`, "correcthorse");
+    const created = await createAccount(`free${Date.now()}@meridian.test`, "correcthorse");
     if (!created.ok) throw new Error("setup");
     const token = await signSession(created.account.id, Date.now());
     return { id: created.account.id, cookie: `${SESSION_COOKIE}=${token}` };

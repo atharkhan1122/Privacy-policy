@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const result = consumeResetToken(body.token ?? "", body.newPassword ?? "");
+  const result = await consumeResetToken(body.token ?? "", body.newPassword ?? "");
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true });
 }

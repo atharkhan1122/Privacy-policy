@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const issued = createResetToken(body.email ?? "");
+  const issued = await createResetToken(body.email ?? "");
   if (issued) {
     const base = process.env.ENGINE_ROOM_PUBLIC_URL ?? new URL(request.url).origin;
     const link = `${base}/reset?token=${issued.token}`;
