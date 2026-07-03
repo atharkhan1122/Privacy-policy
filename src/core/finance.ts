@@ -47,12 +47,21 @@ export function issueInvoice(
   return invoice;
 }
 
-export function markPaid(invoice: Invoice, at?: string): void {
+export function markPaid(
+  invoice: Invoice,
+  at?: string,
+  payment?: { method?: string; reference?: string }
+): void {
   invoice.status = "PAID";
+  invoice.paidAt = at ?? new Date().toISOString();
+  if (payment?.method) invoice.paymentMethod = payment.method;
+  if (payment?.reference) invoice.paymentReference = payment.reference;
+  const via = invoice.paymentMethod ? ` via ${invoice.paymentMethod}` : "";
+  const ref = invoice.paymentReference ? ` (ref ${invoice.paymentReference})` : "";
   emit(
     "payment.received",
     invoice.shipmentId,
-    `${invoice.id} paid: $${invoice.amount.toLocaleString()}`,
+    `${invoice.id} paid: $${invoice.amount.toLocaleString()}${via}${ref}`,
     "SUCCESS",
     at
   );

@@ -52,27 +52,27 @@ describe("rate limiting", () => {
   const req = (headers: Record<string, string> = {}) =>
     new NextRequest("http://engine.room/api/shipments", { headers });
 
-  it("is off by default", () => {
+  it("is off by default", async () => {
     delete process.env.ENGINE_ROOM_RATE_LIMIT;
     expect(rateLimitPerMinute()).toBe(0);
-    for (let i = 0; i < 10; i++) expect(middleware(req()).status).toBe(200);
+    for (let i = 0; i < 10; i++) expect((await middleware(req())).status).toBe(200);
   });
 
-  it("returns 429 past the per-caller window and isolates callers", () => {
+  it("returns 429 past the per-caller window and isolates callers", async () => {
     process.env.ENGINE_ROOM_RATE_LIMIT = "3";
     const caller = { "x-forwarded-for": `10.0.0.${Date.now() % 250}` };
-    for (let i = 0; i < 3; i++) expect(middleware(req(caller)).status).toBe(200);
-    const limited = middleware(req(caller));
+    for (let i = 0; i < 3; i++) expect((await middleware(req(caller))).status).toBe(200);
+    const limited = await middleware(req(caller));
     expect(limited.status).toBe(429);
     expect(limited.headers.get("retry-after")).toBe("60");
     // A different caller is unaffected.
-    expect(middleware(req({ "x-forwarded-for": "10.9.9.9" })).status).toBe(200);
+    expect((await middleware(req({ "x-forwarded-for": "10.9.9.9" }))).status).toBe(200);
   });
 
-  it("never throttles the health probe", () => {
+  it("never throttles the health probe", async () => {
     process.env.ENGINE_ROOM_RATE_LIMIT = "1";
     for (let i = 0; i < 5; i++) {
-      expect(middleware(new NextRequest("http://engine.room/api/health")).status).toBe(200);
+      expect((await middleware(new NextRequest("http://engine.room/api/health"))).status).toBe(200);
     }
   });
 });

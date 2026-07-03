@@ -2,6 +2,7 @@ import { badRequest, ensureWorld, ok } from "@/server/api";
 import { TASK_LABELS, autonomyGrants, setAutonomyLevel } from "@/core/agent";
 import { forceNotify } from "@/core/store";
 import type { AgentTaskType, AutonomyLevel } from "@/core/types";
+import { planFeatures, upgradeRequired } from "@/server/gating";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,12 @@ export async function POST(request: Request) {
   }
   if (![1, 2, 3, 4].includes(body.level as number)) {
     return badRequest("level must be 1–4");
+  }
+  const features = await planFeatures(request);
+  if ((body.level as number) > features.maxAutonomyLevel) {
+    return upgradeRequired(
+      `Your plan allows autonomy up to notch ${features.maxAutonomyLevel}. Upgrade to Pro for full autonomy.`
+    );
   }
   setAutonomyLevel(body.taskType as AgentTaskType, body.level as AutonomyLevel);
   forceNotify();

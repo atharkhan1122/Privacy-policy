@@ -28,28 +28,28 @@ function apiRequest(headers: Record<string, string> = {}, path = "/api/shipments
 }
 
 describe("API-key middleware", () => {
-  it("runs open when no keys are configured", () => {
+  it("runs open when no keys are configured", async () => {
     delete process.env.ENGINE_ROOM_API_KEYS;
-    expect(middleware(apiRequest()).status).toBe(200);
+    expect((await middleware(apiRequest())).status).toBe(200);
   });
 
-  it("rejects missing and wrong keys with 401", () => {
+  it("rejects missing and wrong keys with 401", async () => {
     process.env.ENGINE_ROOM_API_KEYS = KEY;
-    expect(middleware(apiRequest()).status).toBe(401);
-    expect(middleware(apiRequest({ "x-api-key": "erk_wrong" })).status).toBe(401);
-    expect(middleware(apiRequest({ authorization: "Bearer nope" })).status).toBe(401);
+    expect((await middleware(apiRequest())).status).toBe(401);
+    expect((await middleware(apiRequest({ "x-api-key": "erk_wrong" }))).status).toBe(401);
+    expect((await middleware(apiRequest({ authorization: "Bearer nope" }))).status).toBe(401);
   });
 
-  it("accepts the key via x-api-key and Authorization: Bearer", () => {
+  it("accepts the key via x-api-key and Authorization: Bearer", async () => {
     process.env.ENGINE_ROOM_API_KEYS = ` ${KEY} , erk_second`;
-    expect(middleware(apiRequest({ "x-api-key": KEY })).status).toBe(200);
-    expect(middleware(apiRequest({ authorization: `Bearer ${KEY}` })).status).toBe(200);
-    expect(middleware(apiRequest({ "x-api-key": "erk_second" })).status).toBe(200);
+    expect((await middleware(apiRequest({ "x-api-key": KEY }))).status).toBe(200);
+    expect((await middleware(apiRequest({ authorization: `Bearer ${KEY}` }))).status).toBe(200);
+    expect((await middleware(apiRequest({ "x-api-key": "erk_second" }))).status).toBe(200);
   });
 
-  it("exempts the webhook path — Meta cannot send custom headers", () => {
+  it("exempts the webhook path — Meta cannot send custom headers", async () => {
     process.env.ENGINE_ROOM_API_KEYS = KEY;
-    expect(middleware(apiRequest({}, "/api/webhooks/whatsapp")).status).toBe(200);
+    expect((await middleware(apiRequest({}, "/api/webhooks/whatsapp"))).status).toBe(200);
   });
 });
 

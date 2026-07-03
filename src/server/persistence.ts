@@ -43,8 +43,17 @@ export function activeTenant(): string {
   return activeTenantId;
 }
 
-/** Which tenant a request addresses — keyed by its (middleware-validated) API key. */
+/**
+ * Which tenant a request addresses.
+ *
+ * Under auth (ENGINE_ROOM_AUTH=1) the middleware verifies the session cookie
+ * and injects the account id as x-engine-account; each account owns its own
+ * isolated world (tenant = t_<id>). Otherwise the tenant is keyed by the
+ * (middleware-validated) API key, and unkeyed traffic lands in the default world.
+ */
 export function resolveTenant(request: Request): string {
+  const account = request.headers.get("x-engine-account");
+  if (account) return `t_${account}`;
   const entries = parseApiKeys(process.env.ENGINE_ROOM_API_KEYS);
   if (entries.length === 0) return "default";
   const presented = presentedKey(request.headers);

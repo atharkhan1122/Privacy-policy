@@ -20,6 +20,59 @@ const NAV: { href: string; label: string; key: string; hint: string }[] = [
   { href: "/portal", label: "Portal", key: "p", hint: "customer side" },
 ];
 
+interface MeState {
+  authEnabled: boolean;
+  account?: { email: string; plan: "FREE" | "PRO" };
+}
+
+function AccountBadge() {
+  const router = useRouter();
+  const [me, setMe] = useState<MeState | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : { authEnabled: true }))
+      .then(setMe)
+      .catch(() => setMe(null));
+  }, []);
+
+  if (!me?.authEnabled || !me.account) return null;
+  const pro = me.account.plan === "PRO";
+
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        className={`border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] ${
+          pro ? "border-magenta/60 text-magenta" : "border-line text-foam-soft"
+        }`}
+      >
+        {pro ? "Pro" : "Free"}
+      </span>
+      {!pro && (
+        <Link
+          href="/pricing"
+          className="font-mono text-[10px] uppercase tracking-[0.12em] text-instr hover:text-foam"
+        >
+          Upgrade
+        </Link>
+      )}
+      <Mono className="text-foam-soft/70">{me.account.email}</Mono>
+      <button
+        onClick={logout}
+        className="font-mono text-[10px] uppercase tracking-[0.12em] text-foam-soft/70 hover:text-danger"
+      >
+        Sign out
+      </button>
+    </div>
+  );
+}
+
 function Clock() {
   const [now, setNow] = useState<string>("");
   useEffect(() => {
@@ -174,6 +227,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
     initServerSync();
   }, []);
 
+  // Auth pages stand alone — no nav rail, no live world chrome.
+  if (pathname === "/login" || pathname === "/signup") {
+    return (
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-6 py-12">
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className="relative z-10 flex min-h-screen">
       {/* Nav rail */}
@@ -229,6 +291,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             >
               ◈ Ask the Engine · ⌘J
             </button>
+            <AccountBadge />
             <Clock />
           </div>
         </header>

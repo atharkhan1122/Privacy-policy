@@ -35,11 +35,40 @@ liveness/readiness probes, secret-fed config).
 
 | Env var | Effect |
 |---|---|
+| `ENGINE_ROOM_AUTH` | `1` turns on accounts: login/signup, Free vs Pro plans, one tenant world per account, app pages gated behind `/login` |
+| `ENGINE_ROOM_SESSION_SECRET` | HMAC key for session cookies (set a strong value when auth is on) |
+| `ENGINE_ROOM_ADMIN_KEY` | Operator key for `POST /api/billing/confirm` — flips an account to Pro once a Payoneer payment lands (sent as `x-admin-key`) |
+| `ENGINE_ROOM_PAYONEER_LINK` | Optional Payoneer "Request a Payment" link shown on the upgrade screen |
 | `ENGINE_ROOM_API_KEYS` | API auth + one isolated tenant world per key (`erk_key:tenant`) |
 | `ENGINE_ROOM_WHATSAPP_SECRET` | Require signed WhatsApp webhook deliveries |
 | `ANTHROPIC_API_KEY` | Intake extraction through Claude |
 | `ENGINE_ROOM_RATE_LIMIT` | Requests/min per caller (off when unset) |
 | `ENGINE_ROOM_DATA` / `ENGINE_ROOM_PERSIST` | Snapshot path / `0` disables persistence |
+
+### Accounts, plans & manual Payoneer billing
+
+Off by default — the demo runs open with every feature unlocked. Set
+`ENGINE_ROOM_AUTH=1` (plus a `ENGINE_ROOM_SESSION_SECRET`) to turn the platform
+into a signed-up product:
+
+- **`/signup`** creates a **Free** account (up to 5 active shipments, agent to
+  notch 2, no Night Shift, no trade graph); **`/login`** signs back in. Each
+  account gets its own isolated world (`tenant = t_<id>`).
+- **`/pricing`** shows Free vs **Pro** ($299/mo — unlimited shipments, the
+  autonomous Night Shift, full autonomy, Claude intake, trade graph).
+- **Upgrading** uses a **manual Payoneer** flow (built for a personal Payoneer
+  account, which has no billing API): the customer clicks *Upgrade via Payoneer*,
+  gets a reference like `ER-PRO-acc1-…`, and pays via your Payoneer "Request a
+  Payment" (optionally linked with `ENGINE_ROOM_PAYONEER_LINK`). Once the money
+  lands you confirm it:
+  ```bash
+  curl -X POST https://your-host/api/billing/confirm \
+    -H "x-admin-key: $ENGINE_ROOM_ADMIN_KEY" \
+    -H 'content-type: application/json' \
+    -d '{"accountId":"acc1"}'      # flips the account to Pro
+  ```
+  Plan limits are enforced server-side (a blocked feature returns `402` with
+  `{upgrade:true}`), so the gate holds even if the UI is bypassed.
 
 The app boots into a seeded world: a mid-sized Gulf forwarder ("Meridian Cargo LLC,
 Dubai") six months into running on the platform, with a live fleet, an intake inbox,

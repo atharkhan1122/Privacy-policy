@@ -1,25 +1,54 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { safeEqual } from "@/server/safe-equal";
 import { parseApiKeys, presentedKey } from "@/server/api-keys";
+import { SESSION_COOKIE, verifySession } from "@/server/session";
 
 /**
- * API-plane authentication.
+ * Two authentication planes, both opt-in and independent:
  *
- * Set ENGINE_ROOM_API_KEYS to a comma-separated list of `key` or
- * `key:tenant` entries (any opaque strings; convention: `erk_...`) and every
- * /api route requires a key via `x-api-key: <key>` or
- * `Authorization: Bearer <key>`. Each key addresses its own isolated tenant
- * world (see src/server/persistence.ts). Unset, the platform runs in open
- * demo mode — same graceful degradation as the Claude seam.
+ *  1. Accounts (ENGINE_ROOM_AUTH=1) — HMAC session cookies gate the app pages
+ *     (logged-out visitors are redirected to /login) and address each account's
+ *     own tenant world. This is the login / Free-vs-Pro plane.
  *
- * The WhatsApp webhook is exempt: Meta cannot send custom headers, so that
- * route authenticates with the X-Hub-Signature-256 HMAC instead (see
- * src/app/api/webhooks/whatsapp/route.ts).
+ *  2. API keys (ENGINE_ROOM_API_KEYS) — a comma-separated list of `key` or
+ *     `key:tenant` entries for partner/integration access to the /api plane via
+ *     `x-api-key` or `Authorization: Bearer`.
+ *
+ * Both off, the platform runs in open demo mode — the same graceful degradation
+ * as the Claude seam. The WhatsApp webhook is always exempt (Meta cannot send
+ * custom headers; it authenticates with its X-Hub-Signature-256 HMAC instead).
  */
 
 export const config = {
-  matcher: "/api/:path*",
+  // Everything except Next internals and static asset files. Covers pages + /api.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf)$).*)",
+  ],
 };
+
+const PUBLIC_PAGES = new Set(["/login", "/signup", "/pricing"]);
+// Endpoints reachable without a session: auth flow, liveness, the admin-keyed
+// billing confirm (it enforces its own admin key), and the webhook (HMAC).
+const PUBLIC_API = new Set([
+  "/api/auth/login",
+  "/api/auth/signup",
+  "/api/auth/logout",
+  "/api/auth/me",
+  "/api/health",
+  "/api/billing/confirm",
+]);
+
+function authEnabled(): boolean {
+  return process.env.ENGINE_ROOM_AUTH === "1";
+}
+
+function cookieValue(header: string | null, name: string): string | undefined {
+  for (const part of (header ?? "").split(";")) {
+    const [k, ...v] = part.trim().split("=");
+    if (k === name) return v.join("=");
+  }
+  return undefined;
+}
 
 // ─── Rate limiting (opt-in) ──────────────────────────────────────────────────
 // ENGINE_ROOM_RATE_LIMIT=<requests per minute> arms a fixed-window counter
@@ -52,12 +81,14 @@ function rateLimited(caller: string, limit: number, now = Date.now()): boolean {
   return window.count > limit;
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  const isApi = path === "/api" || path.startsWith("/api/");
   const presented = presentedKey(request.headers);
 
+  // Rate limiting applies to the API plane only.
   const limit = rateLimitPerMinute();
-  if (limit > 0 && path !== "/api/health") {
+  if (isApi && limit > 0 && path !== "/api/health") {
     const caller =
       presented ||
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -69,6 +100,44 @@ export function middleware(request: NextRequest) {
       );
     }
   }
+
+  // ── Accounts plane ──────────────────────────────────────────────────────────
+  if (authEnabled()) {
+    const accountId = await verifySession(
+      cookieValue(request.headers.get("cookie"), SESSION_COOKIE)
+    );
+
+    if (!isApi) {
+      if (PUBLIC_PAGES.has(path)) return NextResponse.next();
+      if (!accountId) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        url.search = path === "/" ? "" : `?next=${encodeURIComponent(path)}`;
+        return NextResponse.redirect(url);
+      }
+      return NextResponse.next();
+    }
+
+    // API under auth: public endpoints + webhook always pass.
+    if (path.startsWith("/api/webhooks/") || PUBLIC_API.has(path)) {
+      return NextResponse.next();
+    }
+    // A valid session addresses that account's tenant world.
+    if (accountId) {
+      const headers = new Headers(request.headers);
+      headers.set("x-engine-account", accountId);
+      return NextResponse.next({ request: { headers } });
+    }
+    // No session — allow a valid partner API key, else reject.
+    const entries = parseApiKeys(process.env.ENGINE_ROOM_API_KEYS);
+    if (entries.length > 0 && presented && entries.some((e) => safeEqual(e.key, presented))) {
+      return NextResponse.next();
+    }
+    return NextResponse.json({ error: "Sign in to continue" }, { status: 401 });
+  }
+
+  // ── API-key plane (auth off) ────────────────────────────────────────────────
+  if (!isApi) return NextResponse.next(); // pages are open when accounts are off
 
   const entries = parseApiKeys(process.env.ENGINE_ROOM_API_KEYS);
   if (entries.length === 0) return NextResponse.next(); // open demo mode

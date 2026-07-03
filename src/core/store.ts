@@ -383,10 +383,13 @@ export function advanceShipment(shipmentId: string): void {
  * payment.received; when every invoice on a settled shipment is paid, the
  * shipment's observations flow to the trade graph (if not already learned).
  */
-export function payInvoice(invoiceId: string): Invoice | undefined {
+export function payInvoice(
+  invoiceId: string,
+  payment?: { method?: string; reference?: string }
+): Invoice | undefined {
   const invoice = world.invoices.find((i) => i.id === invoiceId);
   if (!invoice || invoice.status === "PAID") return invoice;
-  markPaid(invoice);
+  markPaid(invoice, undefined, payment);
   notify();
   return invoice;
 }

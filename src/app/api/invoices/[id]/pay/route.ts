@@ -13,5 +13,16 @@ export async function POST(
   const invoice = world.invoices.find((i) => i.id === id);
   if (!invoice) return notFound(`Unknown invoice ${id}`);
   if (invoice.status === "PAID") return badRequest(`${id} is already paid`);
-  return ok(payInvoice(id));
+  // Optional {method, reference} records how settlement landed — e.g. a manual
+  // Payoneer payment with the customer's reference note.
+  let payment: { method?: string; reference?: string } | undefined;
+  try {
+    const body = (await request.json()) as { method?: string; reference?: string };
+    if (body && (body.method || body.reference)) {
+      payment = { method: body.method, reference: body.reference };
+    }
+  } catch {
+    // no body → a plain settlement, which is fine
+  }
+  return ok(payInvoice(id, payment));
 }

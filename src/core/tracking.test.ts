@@ -98,7 +98,7 @@ describe("health endpoint", () => {
     const saved = process.env.ENGINE_ROOM_API_KEYS;
     process.env.ENGINE_ROOM_API_KEYS = "erk_locked";
     try {
-      expect(middleware(new NextRequest("http://engine.room/api/health")).status).toBe(200);
+      expect((await middleware(new NextRequest("http://engine.room/api/health"))).status).toBe(200);
       const health = await (await getHealth()).json();
       expect(health.ok).toBe(true);
       expect(typeof health.uptimeSec).toBe("number");

@@ -127,6 +127,11 @@ export interface Invoice {
   status: "DRAFT" | "ISSUED" | "OVERDUE" | "PAID";
   financingOffered: boolean;
   financingAprPct?: number;
+  /** How settlement was recorded (e.g. "PAYONEER", "WIRE"); defaults to manual. */
+  paymentMethod?: string;
+  /** Operator's reference for the payment (Payoneer note, wire ref, etc.). */
+  paymentReference?: string;
+  paidAt?: string;
 }
 
 // ─── Tracking & prediction ───────────────────────────────────────────────────

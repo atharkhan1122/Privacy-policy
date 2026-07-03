@@ -1,5 +1,6 @@
 import { badRequest, ensureWorld, notFound, ok, withViews } from "@/server/api";
 import { convertIntake } from "@/core/store";
+import { activeShipmentCount, planFeatures, upgradeRequired } from "@/server/gating";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,12 @@ export async function POST(
   if (!message) return notFound(`Unknown intake message ${id}`);
   if (!message.extraction) return badRequest(`Parse ${id} before converting`);
   if (message.status === "CONVERTED") return badRequest(`${id} is already converted`);
+  const features = await planFeatures(request);
+  if (activeShipmentCount() >= features.maxActiveShipments) {
+    return upgradeRequired(
+      `The Free plan is capped at ${features.maxActiveShipments} active shipments. Upgrade to Pro for unlimited.`
+    );
+  }
   const shipment = convertIntake(id);
   if (!shipment) return badRequest(`Could not convert ${id}`);
   return ok(withViews(shipment), 201);
