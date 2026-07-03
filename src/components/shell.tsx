@@ -230,6 +230,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
     return <div className="relative z-10 min-h-screen px-6 py-10">{children}</div>;
   }
 
+  // The marketing page brings its own header and full-width layout.
+  if (pathname === "/welcome") {
+    return <div className="relative z-10 min-h-screen">{children}</div>;
+  }
+
   return (
     <div className="relative z-10 flex min-h-screen">
       {/* Nav rail */}

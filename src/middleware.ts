@@ -28,7 +28,7 @@ export const config = {
 
 // The admin console authenticates with the operator key, not a customer
 // session, so it stands outside the session gate.
-const PUBLIC_PAGES = new Set(["/login", "/signup", "/pricing", "/admin"]);
+const PUBLIC_PAGES = new Set(["/welcome", "/login", "/signup", "/pricing", "/admin"]);
 // Endpoints reachable without a session: auth flow, liveness, and the
 // admin-keyed billing confirm (it enforces its own admin key). The webhook
 // (HMAC) and the /api/admin/ plane are handled by prefix below.
@@ -114,8 +114,15 @@ export async function middleware(request: NextRequest) {
       if (PUBLIC_PAGES.has(path)) return NextResponse.next();
       if (!accountId) {
         const url = request.nextUrl.clone();
-        url.pathname = "/login";
-        url.search = path === "/" ? "" : `?next=${encodeURIComponent(path)}`;
+        // Anonymous visitors land on the marketing page; a deep link into the
+        // app remembers where it was headed and sends them to sign in.
+        if (path === "/") {
+          url.pathname = "/welcome";
+          url.search = "";
+        } else {
+          url.pathname = "/login";
+          url.search = `?next=${encodeURIComponent(path)}`;
+        }
         return NextResponse.redirect(url);
       }
       return NextResponse.next();

@@ -144,6 +144,16 @@ describe("page gating middleware (auth on)", () => {
     expect((await middleware(page("/pricing"))).status).toBe(200);
   });
 
+  it("sends an anonymous visitor at the root to the marketing page", async () => {
+    const res = await middleware(page("/"));
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("/welcome");
+  });
+
+  it("serves the marketing page without a session", async () => {
+    expect((await middleware(page("/welcome"))).status).toBe(200);
+  });
+
   it("admits an authenticated visitor and passes the account to the API", async () => {
     const token = await signSession("acc7", Date.now());
     const cookie = `${SESSION_COOKIE}=${token}`;
