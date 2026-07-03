@@ -1,17 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Mono, Panel } from "@/components/ui";
 import { usePlan } from "@/core/use-plan";
 
-export default function AccountPage() {
-  const { authEnabled, plan, email } = usePlan();
+function AccountInner() {
+  const { authEnabled, plan, email, emailVerified } = usePlan();
+  const verifiedParam = useSearchParams().get("verified");
+  const [resent, setResent] = useState(false);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+
+  async function resendVerification() {
+    await fetch("/api/auth/verify/send", { method: "POST" });
+    setResent(true);
+  }
 
   async function changePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -63,11 +71,47 @@ export default function AccountPage() {
         <h1 className="mt-1 text-2xl font-semibold uppercase tracking-wide">Your account</h1>
       </div>
 
+      {verifiedParam === "1" && (
+        <div className="border border-instr/50 bg-instr/10 px-4 py-3 font-mono text-[11px] text-instr">
+          Email verified — thank you.
+        </div>
+      )}
+      {verifiedParam === "0" && (
+        <div className="border border-danger/50 bg-danger/10 px-4 py-3 font-mono text-[11px] text-danger">
+          That verification link is invalid or has already been used.
+        </div>
+      )}
+
+      {!emailVerified && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-brass/50 bg-brass/10 px-4 py-3">
+          <span className="font-mono text-[11px] text-brass">
+            Your email isn&apos;t verified yet.
+          </span>
+          {resent ? (
+            <span className="font-mono text-[11px] text-instr">Verification email sent.</span>
+          ) : (
+            <button
+              onClick={() => void resendVerification()}
+              className="border border-brass/60 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-brass hover:bg-brass/10"
+            >
+              Resend verification
+            </button>
+          )}
+        </div>
+      )}
+
       <Panel title="Profile" fig="FIG.1">
         <div className="grid grid-cols-2 gap-px bg-line">
           <div className="bg-hull px-4 py-3">
             <div className={label}>Email</div>
-            <div className="mt-1 font-mono text-sm text-foam">{email ?? "—"}</div>
+            <div className="mt-1 flex items-center gap-2 font-mono text-sm text-foam">
+              {email ?? "—"}
+              {emailVerified ? (
+                <span className="text-[10px] uppercase tracking-[0.12em] text-instr">✓ verified</span>
+              ) : (
+                <span className="text-[10px] uppercase tracking-[0.12em] text-brass">unverified</span>
+              )}
+            </div>
           </div>
           <div className="bg-hull px-4 py-3">
             <div className={label}>Plan</div>
@@ -122,5 +166,13 @@ export default function AccountPage() {
         </form>
       </Panel>
     </div>
+  );
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense fallback={null}>
+      <AccountInner />
+    </Suspense>
   );
 }

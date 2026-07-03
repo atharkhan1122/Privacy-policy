@@ -17,6 +17,7 @@ export interface PlanState {
   authEnabled: boolean;
   plan: Plan | null; // null when auth is off
   email?: string;
+  emailVerified?: boolean;
   features: PlanFeatures; // effective features (PRO when ungated)
   loading: boolean;
 }
@@ -49,6 +50,7 @@ function load(): Promise<void> {
           authEnabled: true,
           plan,
           email: data.account.email,
+          emailVerified: !!data.account.emailVerified,
           features: PLANS[plan],
           loading: false,
         };

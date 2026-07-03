@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authEnabled, createAccount, toPublic } from "@/server/accounts";
 import { sessionCookie, signSession } from "@/server/session";
+import { baseUrlFrom, sendVerificationEmail } from "@/server/verify-email";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
   }
   const result = createAccount(body.email ?? "", body.password ?? "");
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+  await sendVerificationEmail(result.account, baseUrlFrom(request));
   const token = await signSession(result.account.id, Date.now());
   return NextResponse.json(
     { account: toPublic(result.account) },

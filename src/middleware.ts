@@ -47,6 +47,7 @@ const PUBLIC_API = new Set([
   "/api/auth/me",
   "/api/auth/forgot",
   "/api/auth/reset",
+  "/api/auth/verify",
   "/api/health",
   "/api/billing/confirm",
 ]);

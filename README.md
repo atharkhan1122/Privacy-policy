@@ -37,8 +37,10 @@ liveness/readiness probes, secret-fed config).
 |---|---|
 | `ENGINE_ROOM_AUTH` | `1` turns on accounts: login/signup, Free vs Pro plans, one tenant world per account, app pages gated behind `/login` |
 | `ENGINE_ROOM_SESSION_SECRET` | HMAC key for session cookies (set a strong value when auth is on) |
-| `ENGINE_ROOM_ADMIN_KEY` | Operator key for `POST /api/billing/confirm` — flips an account to Pro once a Payoneer payment lands (sent as `x-admin-key`) |
+| `ENGINE_ROOM_ADMIN_KEY` | Operator key for the `/admin` console and `POST /api/billing/confirm` (sent as `x-admin-key`) |
 | `ENGINE_ROOM_PAYONEER_LINK` | Optional Payoneer "Request a Payment" link shown on the upgrade screen |
+| `ENGINE_ROOM_EMAIL_WEBHOOK` | Outbound email target for resets/verification (POST JSON); unset → operator relay outbox in `/admin` |
+| `ENGINE_ROOM_PUBLIC_URL` | Public base URL used in email links (defaults to the request origin) |
 | `ENGINE_ROOM_API_KEYS` | API auth + one isolated tenant world per key (`erk_key:tenant`) |
 | `ENGINE_ROOM_WHATSAPP_SECRET` | Require signed WhatsApp webhook deliveries |
 | `ANTHROPIC_API_KEY` | Intake extraction through Claude |
@@ -74,6 +76,12 @@ into a signed-up product:
   upgrades (with their reference) to the top, and confirms a payment → Pro with
   one click (or downgrades). The key is sent as `x-admin-key` per action and
   never leaves the tab — no curl needed for day-to-day billing.
+- **Account lifecycle** — signup sends a verification email; users manage their
+  password at **`/account`** (change password, resend verification) and recover
+  a lost one via **`/forgot`** → **`/reset`** (single-use, 1-hour tokens). Email
+  goes through `ENGINE_ROOM_EMAIL_WEBHOOK` when set; with no provider, reset and
+  verification links appear in the `/admin` "Mail to relay" panel so a
+  single-node self-host still works.
 
 The app boots into a seeded world: a mid-sized Gulf forwarder ("Meridian Cargo LLC,
 Dubai") six months into running on the platform, with a live fleet, an intake inbox,

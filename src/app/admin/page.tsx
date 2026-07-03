@@ -214,7 +214,7 @@ export default function AdminPage() {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-line text-foam-soft">
-                {["Email", "Plan", "Joined", "Payoneer ref", "Action"].map((h, i) => (
+                {["Email", "Plan", "Verified", "Joined", "Payoneer ref", "Action"].map((h, i) => (
                   <th
                     key={h}
                     className={`py-2 font-mono font-normal uppercase tracking-[0.12em] ${i === 0 ? "px-4" : "px-2"}`}
@@ -238,6 +238,13 @@ export default function AdminPage() {
                       >
                         {a.plan}
                       </span>
+                    </td>
+                    <td className="px-2 py-2.5 font-mono text-[11px]">
+                      {a.emailVerified ? (
+                        <span className="text-instr">✓</span>
+                      ) : (
+                        <span className="text-foam-soft/50">—</span>
+                      )}
                     </td>
                     <td className="px-2 py-2.5 font-mono text-foam-soft">{timeAgo(a.createdAt)}</td>
                     <td className="px-2 py-2.5 font-mono text-foam-soft">

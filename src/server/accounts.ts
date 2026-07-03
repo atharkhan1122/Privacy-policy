@@ -23,6 +23,9 @@ export interface Account {
   /** Password reset: sha256(token) hex + expiry (ms epoch). */
   resetTokenHash?: string;
   resetTokenExp?: number;
+  /** Email verification. */
+  emailVerified?: boolean;
+  verifyTokenHash?: string;
 }
 
 export interface PublicAccount {
@@ -30,6 +33,7 @@ export interface PublicAccount {
   email: string;
   plan: Plan;
   tenant: string;
+  emailVerified: boolean;
   upgradeRequestedAt?: string;
 }
 
@@ -39,6 +43,7 @@ export interface AdminAccount {
   email: string;
   plan: Plan;
   createdAt: string;
+  emailVerified: boolean;
   upgradeRequestedAt?: string;
   payoneerReference?: string;
 }
@@ -114,6 +119,7 @@ export function toPublic(a: Account): PublicAccount {
     email: a.email,
     plan: a.plan,
     tenant: tenantForAccount(a.id),
+    emailVerified: !!a.emailVerified,
     upgradeRequestedAt: a.upgradeRequestedAt,
   };
 }
@@ -179,6 +185,7 @@ export function listAccounts(): AdminAccount[] {
     email: a.email,
     plan: a.plan,
     createdAt: a.createdAt,
+    emailVerified: !!a.emailVerified,
     upgradeRequestedAt: a.upgradeRequestedAt,
     payoneerReference: a.payoneerReference,
   }));
@@ -241,6 +248,31 @@ export function consumeResetToken(
   account.resetTokenExp = undefined;
   persist();
   return { ok: true };
+}
+
+// ─── Email verification tokens ───────────────────────────────────────────────
+
+/** Mint a verification token for an account; returns the raw token for the link. */
+export function createVerifyToken(id: string): string | undefined {
+  const account = findAccount(id);
+  if (!account) return undefined;
+  const token = crypto.randomBytes(32).toString("hex");
+  account.verifyTokenHash = sha256(token);
+  persist();
+  return token;
+}
+
+/** Spend a verification token; marks the email verified. */
+export function consumeVerifyToken(token: string): { ok: true; id: string } | { ok: false } {
+  load();
+  if (!token) return { ok: false };
+  const hash = sha256(token);
+  const account = [...accounts.values()].find((a) => a.verifyTokenHash === hash);
+  if (!account) return { ok: false };
+  account.emailVerified = true;
+  account.verifyTokenHash = undefined;
+  persist();
+  return { ok: true, id: account.id };
 }
 
 export function requestUpgrade(id: string, reference: string): Account | undefined {
