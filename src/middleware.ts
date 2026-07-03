@@ -28,7 +28,15 @@ export const config = {
 
 // The admin console authenticates with the operator key, not a customer
 // session, so it stands outside the session gate.
-const PUBLIC_PAGES = new Set(["/welcome", "/login", "/signup", "/pricing", "/admin"]);
+const PUBLIC_PAGES = new Set([
+  "/welcome",
+  "/login",
+  "/signup",
+  "/pricing",
+  "/admin",
+  "/forgot",
+  "/reset",
+]);
 // Endpoints reachable without a session: auth flow, liveness, and the
 // admin-keyed billing confirm (it enforces its own admin key). The webhook
 // (HMAC) and the /api/admin/ plane are handled by prefix below.
@@ -37,6 +45,8 @@ const PUBLIC_API = new Set([
   "/api/auth/signup",
   "/api/auth/logout",
   "/api/auth/me",
+  "/api/auth/forgot",
+  "/api/auth/reset",
   "/api/health",
   "/api/billing/confirm",
 ]);

@@ -221,7 +221,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Auth pages stand alone — no nav rail, no live world chrome.
-  if (pathname === "/login" || pathname === "/signup") {
+  if (
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname === "/forgot" ||
+    pathname === "/reset"
+  ) {
     return (
       <div className="relative z-10 flex min-h-screen items-center justify-center px-6 py-12">
         {children}

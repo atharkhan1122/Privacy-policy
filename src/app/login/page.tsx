@@ -96,8 +96,8 @@ function LoginForm() {
         <Link href="/signup" className="hover:text-foam">
           Create an account →
         </Link>
-        <Link href="/pricing" className="hover:text-foam">
-          See plans
+        <Link href="/forgot" className="hover:text-foam">
+          Forgot password?
         </Link>
       </div>
     </div>

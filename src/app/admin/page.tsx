@@ -4,9 +4,18 @@ import { useCallback, useState } from "react";
 import { Mono, Panel, timeAgo } from "@/components/ui";
 import type { AdminAccount } from "@/server/accounts";
 
+interface OutboxEntry {
+  to: string;
+  subject: string;
+  link?: string;
+  at: string;
+}
+
 interface AdminData {
   authEnabled: boolean;
   accounts: AdminAccount[];
+  emailConfigured: boolean;
+  outbox: OutboxEntry[];
 }
 
 /** Pending Payoneer upgrades float to the top; then newest accounts first. */
@@ -168,6 +177,28 @@ export default function AdminPage() {
                 >
                   {actingId === a.id ? "Confirming…" : "✓ Confirm payment → Pro"}
                 </button>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
+
+      {!data.emailConfigured && data.outbox.length > 0 && (
+        <Panel title={`Mail to relay — ${data.outbox.length}`} fig="FIG.1b">
+          <div className="border-b border-line px-4 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brass">
+            No email provider set (ENGINE_ROOM_EMAIL_WEBHOOK) — relay these links to users
+          </div>
+          <div className="divide-y divide-line-soft">
+            {data.outbox.map((m, i) => (
+              <div key={i} className="px-4 py-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-foam">{m.to}</span>
+                  <span className="font-mono text-[10px] text-foam-soft">{timeAgo(m.at)}</span>
+                </div>
+                <div className="mt-0.5 text-foam-soft">{m.subject}</div>
+                {m.link && (
+                  <div className="mt-1 break-all font-mono text-[11px] text-instr">{m.link}</div>
+                )}
               </div>
             ))}
           </div>

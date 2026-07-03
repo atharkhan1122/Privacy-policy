@@ -20,6 +20,9 @@ export interface Account {
   /** Manual Payoneer upgrade tracking. */
   upgradeRequestedAt?: string;
   payoneerReference?: string;
+  /** Password reset: sha256(token) hex + expiry (ms epoch). */
+  resetTokenHash?: string;
+  resetTokenExp?: number;
 }
 
 export interface PublicAccount {
@@ -188,6 +191,56 @@ export function setPlan(id: string, plan: Plan): Account | undefined {
   if (plan === "PRO") a.upgradeRequestedAt = undefined;
   persist();
   return a;
+}
+
+// ─── Password reset tokens ───────────────────────────────────────────────────
+// The raw token is high-entropy random, so a plain sha256 (not scrypt) is the
+// right store: fast to check, and useless to an attacker who reads the file.
+
+const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function sha256(value: string): string {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+/**
+ * Mint a reset token for an email. Returns the raw token (to put in the link)
+ * and the account, or null if no such email — the caller responds the same
+ * either way so account existence never leaks.
+ */
+export function createResetToken(email: string): { token: string; account: Account } | null {
+  load();
+  const id = byEmail.get(email.trim().toLowerCase());
+  const account = id ? accounts.get(id) : undefined;
+  if (!account) return null;
+  const token = crypto.randomBytes(32).toString("hex");
+  account.resetTokenHash = sha256(token);
+  account.resetTokenExp = Date.now() + RESET_TTL_MS;
+  persist();
+  return { token, account };
+}
+
+/** Spend a reset token: set the new password and clear the token. */
+export function consumeResetToken(
+  token: string,
+  newPassword: string
+): { ok: true } | { ok: false; error: string } {
+  load();
+  if (!token) return { ok: false, error: "Invalid or expired reset link" };
+  const hash = sha256(token);
+  const account = [...accounts.values()].find((a) => a.resetTokenHash === hash);
+  if (!account || !account.resetTokenExp || account.resetTokenExp < Date.now()) {
+    return { ok: false, error: "Invalid or expired reset link" };
+  }
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    return { ok: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` };
+  }
+  account.salt = crypto.randomBytes(16).toString("hex");
+  account.passwordHash = hashPassword(newPassword, account.salt);
+  account.resetTokenHash = undefined;
+  account.resetTokenExp = undefined;
+  persist();
+  return { ok: true };
 }
 
 export function requestUpgrade(id: string, reference: string): Account | undefined {
