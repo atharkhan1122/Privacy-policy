@@ -33,6 +33,11 @@ docker compose up --build   # standalone build, durable world on the engine-data
 Or to a cluster: `kubectl apply -f deploy/k8s.yaml` (PVC-backed world,
 liveness/readiness probes, secret-fed config).
 
+**Taking it live and taking signups?** Follow the step-by-step
+[go-live guide](docs/DEPLOY.md) — secrets, hosting, the product-mode env,
+email, and your first Payoneer payment. Config lives in
+[`.env.example`](.env.example).
+
 | Env var | Effect |
 |---|---|
 | `ENGINE_ROOM_AUTH` | `1` turns on accounts: login/signup, Free vs Pro plans, one tenant world per account, app pages gated behind `/login` |

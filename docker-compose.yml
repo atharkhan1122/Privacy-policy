@@ -6,13 +6,22 @@ services:
     volumes:
       - engine-data:/data
     environment:
-      # Uncomment to lock the API plane and split it into tenant worlds:
-      # ENGINE_ROOM_API_KEYS: "erk_meridian_1:meridian,erk_horizon_2:horizon"
-      # Uncomment to require signed WhatsApp deliveries:
-      # ENGINE_ROOM_WHATSAPP_SECRET: "your-meta-app-secret"
-      # Uncomment to run intake extraction through Claude:
-      # ANTHROPIC_API_KEY: "sk-ant-..."
       ENGINE_ROOM_PERSIST: "1"
+      # ── Product mode: accounts, Free vs Pro, billing ──
+      # Turn these on to take signups. Generate secrets with:
+      #   openssl rand -hex 32   (session)   /   openssl rand -hex 24   (admin)
+      # ENGINE_ROOM_AUTH: "1"
+      # ENGINE_ROOM_SESSION_SECRET: "replace-with-openssl-rand-hex-32"
+      # ENGINE_ROOM_ADMIN_KEY: "replace-with-operator-key"
+      # ENGINE_ROOM_PUBLIC_URL: "https://engine.yourcompany.com"
+      # ENGINE_ROOM_PAYONEER_LINK: "https://payoneer.com/pay/your-link"
+      # Email for reset/verification (unset → relay via /admin outbox):
+      # ENGINE_ROOM_EMAIL_WEBHOOK: "https://your-email-webhook"
+      # ── Optional integrations ──
+      # ENGINE_ROOM_API_KEYS: "erk_meridian_1:meridian,erk_horizon_2:horizon"
+      # ENGINE_ROOM_RATE_LIMIT: "120"
+      # ENGINE_ROOM_WHATSAPP_SECRET: "your-meta-app-secret"
+      # ANTHROPIC_API_KEY: "sk-ant-..."
     restart: unless-stopped
 
 volumes:

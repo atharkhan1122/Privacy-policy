@@ -21,6 +21,14 @@ metadata:
   name: engine-room-secrets
 type: Opaque
 stringData:
+  # ── Product mode: accounts, Free vs Pro, billing ──
+  # ENGINE_ROOM_AUTH: "1"
+  # ENGINE_ROOM_SESSION_SECRET: "openssl rand -hex 32"
+  # ENGINE_ROOM_ADMIN_KEY: "openssl rand -hex 24"
+  # ENGINE_ROOM_PUBLIC_URL: "https://engine.yourcompany.com"
+  # ENGINE_ROOM_PAYONEER_LINK: "https://payoneer.com/pay/your-link"
+  # ENGINE_ROOM_EMAIL_WEBHOOK: "https://your-email-webhook"
+  # ── Optional integrations ──
   # ENGINE_ROOM_API_KEYS: "erk_meridian_1:meridian,erk_horizon_2:horizon"
   # ENGINE_ROOM_WHATSAPP_SECRET: "your-meta-app-secret"
   # ANTHROPIC_API_KEY: "sk-ant-..."
