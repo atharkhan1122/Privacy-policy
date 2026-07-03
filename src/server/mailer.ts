@@ -39,6 +39,9 @@ export async function deliver(email: OutgoingEmail): Promise<void> {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(email),
+        // Bound the outbound call so a slow/hung provider can't stall (or pile
+        // up) the request that triggered it.
+        signal: AbortSignal.timeout(5000),
       });
     } catch {
       // A failed send must not take the request down; the user still gets the

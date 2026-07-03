@@ -132,7 +132,8 @@ export function createAccount(email: string, password: string): SignupResult {
   load();
   const normalized = email.trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalized)) return { ok: false, error: "Enter a valid email" };
-  if (password.length < 8) return { ok: false, error: "Password must be at least 8 characters" };
+  const pwProblem = passwordProblem(password);
+  if (pwProblem) return { ok: false, error: pwProblem };
   if (byEmail.has(normalized)) return { ok: false, error: "An account with that email already exists" };
   const salt = crypto.randomBytes(16).toString("hex");
   const account: Account = {
@@ -158,14 +159,27 @@ export function verifyCredentials(email: string, password: string): Account | nu
 }
 
 export const MIN_PASSWORD_LENGTH = 8;
+// scrypt cost scales with input; cap length so an oversized password can't be
+// used as a CPU-exhaustion vector.
+export const MAX_PASSWORD_LENGTH = 200;
+
+/** Shared password policy for signup, change, and reset. */
+export function passwordProblem(password: string): string | null {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+  }
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    return `Password must be at most ${MAX_PASSWORD_LENGTH} characters`;
+  }
+  return null;
+}
 
 /** Re-hash and store a new password with a fresh salt. */
 export function setPassword(id: string, newPassword: string): { ok: true } | { ok: false; error: string } {
   const account = findAccount(id);
   if (!account) return { ok: false, error: "Unknown account" };
-  if (newPassword.length < MIN_PASSWORD_LENGTH) {
-    return { ok: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` };
-  }
+  const problem = passwordProblem(newPassword);
+  if (problem) return { ok: false, error: problem };
   account.salt = crypto.randomBytes(16).toString("hex");
   account.passwordHash = hashPassword(newPassword, account.salt);
   persist();
@@ -239,9 +253,8 @@ export function consumeResetToken(
   if (!account || !account.resetTokenExp || account.resetTokenExp < Date.now()) {
     return { ok: false, error: "Invalid or expired reset link" };
   }
-  if (newPassword.length < MIN_PASSWORD_LENGTH) {
-    return { ok: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` };
-  }
+  const problem = passwordProblem(newPassword);
+  if (problem) return { ok: false, error: problem };
   account.salt = crypto.randomBytes(16).toString("hex");
   account.passwordHash = hashPassword(newPassword, account.salt);
   account.resetTokenHash = undefined;

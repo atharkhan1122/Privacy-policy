@@ -61,6 +61,9 @@ describe("accounts", () => {
 
     const dup = createAccount(email, "longenough");
     expect(dup.ok).toBe(false);
+
+    // over-long passwords are rejected (scrypt CPU-DoS guard)
+    expect(createAccount(uniqueEmail(), "a".repeat(500)).ok).toBe(false);
   });
 
   it("verifies credentials only for the right password", () => {
@@ -113,6 +116,12 @@ describe("session tokens", () => {
     expect(sessionCookie("abc")).toContain(`${SESSION_COOKIE}=abc`);
     expect(sessionCookie("abc")).toContain("HttpOnly");
     expect(clearedSessionCookie()).toContain("Max-Age=0");
+  });
+
+  it("fails closed when the session secret is unset under auth", async () => {
+    delete process.env.ENGINE_ROOM_SESSION_SECRET;
+    await expect(signSession("acc1", Date.now())).rejects.toThrow(/SESSION_SECRET/);
+    process.env.ENGINE_ROOM_SESSION_SECRET = "test-secret"; // restore for later tests
   });
 });
 
@@ -196,7 +205,7 @@ describe("page gating middleware (auth on)", () => {
     );
     // A valid session is admitted (200) and the account header is injected for tenancy.
     expect(apiRes.status).toBe(200);
-    expect(apiRes.headers.get("x-middleware-request-x-engine-account") ?? "acc7").toBeTruthy();
+    expect(apiRes.headers.get("x-middleware-request-x-engine-account")).toBe("acc7");
   });
 
   it("401s an API call with no session and no key", async () => {
@@ -204,5 +213,38 @@ describe("page gating middleware (auth on)", () => {
       new NextRequest("http://engine.room/api/shipments")
     );
     expect(res.status).toBe(401);
+  });
+});
+
+describe("tenant header hardening", () => {
+  const savedKeys = { v: process.env.ENGINE_ROOM_API_KEYS };
+  afterEach(() => {
+    if (savedKeys.v === undefined) delete process.env.ENGINE_ROOM_API_KEYS;
+    else process.env.ENGINE_ROOM_API_KEYS = savedKeys.v;
+  });
+
+  it("overwrites an injected x-engine-account with the verified session account", async () => {
+    const cookie = `${SESSION_COOKIE}=${await signSession("acc7", Date.now())}`;
+    const res = await middleware(
+      new NextRequest("http://engine.room/api/shipments", {
+        headers: { cookie, "x-engine-account": "victim" },
+      })
+    );
+    expect(res.status).toBe(200);
+    // The forged value never survives — tenancy sees the real account.
+    expect(res.headers.get("x-middleware-request-x-engine-account")).toBe("acc7");
+  });
+
+  it("strips an injected x-engine-account on the API-key path", async () => {
+    process.env.ENGINE_ROOM_API_KEYS = "erk_partner_1:acme";
+    const res = await middleware(
+      new NextRequest("http://engine.room/api/shipments", {
+        headers: { "x-api-key": "erk_partner_1", "x-engine-account": "acc7" },
+      })
+    );
+    expect(res.status).toBe(200);
+    // A partner key cannot address another account's tenant world.
+    expect(res.headers.get("x-middleware-request-x-engine-account")).toBeNull();
+    expect(res.headers.get("x-middleware-override-headers") ?? "").not.toContain("x-engine-account");
   });
 });

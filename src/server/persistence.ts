@@ -52,6 +52,9 @@ export function activeTenant(): string {
  * (middleware-validated) API key, and unkeyed traffic lands in the default world.
  */
 export function resolveTenant(request: Request): string {
+  // x-engine-account is trusted: the edge middleware verifies the session and
+  // strips any client-supplied copy before setting it, so it can only be present
+  // here for a genuinely authenticated account (see src/middleware.ts).
   const account = request.headers.get("x-engine-account");
   if (account) return `t_${account}`;
   const entries = parseApiKeys(process.env.ENGINE_ROOM_API_KEYS);

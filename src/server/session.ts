@@ -15,7 +15,17 @@ export const SESSION_COOKIE = "er_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
 function secret(): string {
-  return process.env.ENGINE_ROOM_SESSION_SECRET ?? "engine-room-dev-session-secret-change-me";
+  const configured = process.env.ENGINE_ROOM_SESSION_SECRET;
+  if (configured && configured.length > 0) return configured;
+  // Fail closed: a known default would let anyone forge a session for any
+  // account. In product mode the secret is mandatory; only the open demo
+  // (auth off) may fall back to the throwaway dev key.
+  if (process.env.ENGINE_ROOM_AUTH === "1") {
+    throw new Error(
+      "ENGINE_ROOM_SESSION_SECRET must be set when ENGINE_ROOM_AUTH=1 (generate one with `openssl rand -hex 32`)"
+    );
+  }
+  return "engine-room-dev-session-secret-change-me";
 }
 
 function b64url(bytes: ArrayBuffer): string {

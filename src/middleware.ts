@@ -95,10 +95,21 @@ function rateLimited(caller: string, limit: number, now = Date.now()): boolean {
   return window.count > limit;
 }
 
+/** The internal, middleware-only header carrying the verified account id. */
+const ACCOUNT_HEADER = "x-engine-account";
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isApi = path === "/api" || path.startsWith("/api/");
   const presented = presentedKey(request.headers);
+
+  // x-engine-account is a TRUSTED internal channel: persistence keys the tenant
+  // world off it. It must never be attacker-controllable, so strip any inbound
+  // copy from every request up front; only the verified-session path below is
+  // allowed to set it. `fwd` is the sanitized header set forwarded to handlers.
+  const fwd = new Headers(request.headers);
+  fwd.delete(ACCOUNT_HEADER);
+  const pass = () => NextResponse.next({ request: { headers: fwd } });
 
   // Rate limiting applies to the API plane only.
   const limit = rateLimitPerMinute();
@@ -122,7 +133,7 @@ export async function middleware(request: NextRequest) {
     );
 
     if (!isApi) {
-      if (PUBLIC_PAGES.has(path)) return NextResponse.next();
+      if (PUBLIC_PAGES.has(path)) return pass();
       if (!accountId) {
         const url = request.nextUrl.clone();
         // Anonymous visitors land on the marketing page; a deep link into the
@@ -136,7 +147,7 @@ export async function middleware(request: NextRequest) {
         }
         return NextResponse.redirect(url);
       }
-      return NextResponse.next();
+      return pass();
     }
 
     // API under auth: public endpoints, the webhook, and the admin-keyed
@@ -146,33 +157,32 @@ export async function middleware(request: NextRequest) {
       path.startsWith("/api/admin/") ||
       PUBLIC_API.has(path)
     ) {
-      return NextResponse.next();
+      return pass();
     }
     // A valid session addresses that account's tenant world.
     if (accountId) {
-      const headers = new Headers(request.headers);
-      headers.set("x-engine-account", accountId);
-      return NextResponse.next({ request: { headers } });
+      fwd.set(ACCOUNT_HEADER, accountId);
+      return NextResponse.next({ request: { headers: fwd } });
     }
     // No session — allow a valid partner API key, else reject.
     const entries = parseApiKeys(process.env.ENGINE_ROOM_API_KEYS);
     if (entries.length > 0 && presented && entries.some((e) => safeEqual(e.key, presented))) {
-      return NextResponse.next();
+      return pass();
     }
     return NextResponse.json({ error: "Sign in to continue" }, { status: 401 });
   }
 
   // ── API-key plane (auth off) ────────────────────────────────────────────────
-  if (!isApi) return NextResponse.next(); // pages are open when accounts are off
+  if (!isApi) return pass(); // pages are open when accounts are off
 
   const entries = parseApiKeys(process.env.ENGINE_ROOM_API_KEYS);
-  if (entries.length === 0) return NextResponse.next(); // open demo mode
+  if (entries.length === 0) return pass(); // open demo mode
 
-  if (path.startsWith("/api/webhooks/")) return NextResponse.next(); // HMAC-authenticated
-  if (path === "/api/health") return NextResponse.next(); // liveness probes carry no key
+  if (path.startsWith("/api/webhooks/")) return pass(); // HMAC-authenticated
+  if (path === "/api/health") return pass(); // liveness probes carry no key
 
   if (presented && entries.some((entry) => safeEqual(entry.key, presented))) {
-    return NextResponse.next();
+    return pass();
   }
   return NextResponse.json(
     { error: "Unauthorized — pass an API key via x-api-key or Authorization: Bearer" },
