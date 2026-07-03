@@ -30,6 +30,16 @@ export interface PublicAccount {
   upgradeRequestedAt?: string;
 }
 
+/** Operator's view of an account — everything but the credential material. */
+export interface AdminAccount {
+  id: string;
+  email: string;
+  plan: Plan;
+  createdAt: string;
+  upgradeRequestedAt?: string;
+  payoneerReference?: string;
+}
+
 export function authEnabled(): boolean {
   return process.env.ENGINE_ROOM_AUTH === "1";
 }
@@ -141,6 +151,19 @@ export function verifyCredentials(email: string, password: string): Account | nu
 export function findAccount(id: string): Account | undefined {
   load();
   return accounts.get(id);
+}
+
+/** All accounts for the operator console (no password hashes/salts). */
+export function listAccounts(): AdminAccount[] {
+  load();
+  return [...accounts.values()].map((a) => ({
+    id: a.id,
+    email: a.email,
+    plan: a.plan,
+    createdAt: a.createdAt,
+    upgradeRequestedAt: a.upgradeRequestedAt,
+    payoneerReference: a.payoneerReference,
+  }));
 }
 
 export function setPlan(id: string, plan: Plan): Account | undefined {

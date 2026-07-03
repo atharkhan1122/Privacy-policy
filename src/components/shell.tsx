@@ -225,6 +225,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // The operator console is not part of the customer app — no nav rail.
+  if (pathname === "/admin") {
+    return <div className="relative z-10 min-h-screen px-6 py-10">{children}</div>;
+  }
+
   return (
     <div className="relative z-10 flex min-h-screen">
       {/* Nav rail */}

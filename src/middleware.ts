@@ -26,9 +26,12 @@ export const config = {
   ],
 };
 
-const PUBLIC_PAGES = new Set(["/login", "/signup", "/pricing"]);
-// Endpoints reachable without a session: auth flow, liveness, the admin-keyed
-// billing confirm (it enforces its own admin key), and the webhook (HMAC).
+// The admin console authenticates with the operator key, not a customer
+// session, so it stands outside the session gate.
+const PUBLIC_PAGES = new Set(["/login", "/signup", "/pricing", "/admin"]);
+// Endpoints reachable without a session: auth flow, liveness, and the
+// admin-keyed billing confirm (it enforces its own admin key). The webhook
+// (HMAC) and the /api/admin/ plane are handled by prefix below.
 const PUBLIC_API = new Set([
   "/api/auth/login",
   "/api/auth/signup",
@@ -118,8 +121,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // API under auth: public endpoints + webhook always pass.
-    if (path.startsWith("/api/webhooks/") || PUBLIC_API.has(path)) {
+    // API under auth: public endpoints, the webhook, and the admin-keyed
+    // console plane always pass (each enforces its own auth downstream).
+    if (
+      path.startsWith("/api/webhooks/") ||
+      path.startsWith("/api/admin/") ||
+      PUBLIC_API.has(path)
+    ) {
       return NextResponse.next();
     }
     // A valid session addresses that account's tenant world.

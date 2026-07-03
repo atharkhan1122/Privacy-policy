@@ -69,6 +69,11 @@ into a signed-up product:
   ```
   Plan limits are enforced server-side (a blocked feature returns `402` with
   `{upgrade:true}`), so the gate holds even if the UI is bypassed.
+- **Operator console** — visit **`/admin`** and unlock with your
+  `ENGINE_ROOM_ADMIN_KEY`. It lists every account, floats pending Payoneer
+  upgrades (with their reference) to the top, and confirms a payment → Pro with
+  one click (or downgrades). The key is sent as `x-admin-key` per action and
+  never leaves the tab — no curl needed for day-to-day billing.
 
 The app boots into a seeded world: a mid-sized Gulf forwarder ("Meridian Cargo LLC,
 Dubai") six months into running on the platform, with a live fleet, an intake inbox,

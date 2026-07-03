@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { authEnabled, findAccount, setPlan, toPublic } from "@/server/accounts";
-import { safeEqual } from "@/server/safe-equal";
+import { checkAdmin } from "@/server/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +12,8 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: Request) {
   if (!authEnabled()) return NextResponse.json({ error: "Auth is disabled" }, { status: 400 });
-  const adminKey = process.env.ENGINE_ROOM_ADMIN_KEY;
-  if (!adminKey) return NextResponse.json({ error: "ENGINE_ROOM_ADMIN_KEY not configured" }, { status: 400 });
-  const presented = request.headers.get("x-admin-key") ?? "";
-  if (!safeEqual(adminKey, presented)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = checkAdmin(request);
+  if (denied) return NextResponse.json({ error: denied.error }, { status: denied.status });
 
   let body: { accountId?: string; plan?: "FREE" | "PRO" };
   try {
