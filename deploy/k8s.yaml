@@ -1,0 +1,94 @@
+# The Engine Room — single-node Kubernetes deployment.
+# kubectl apply -f deploy/k8s.yaml
+#
+# Replicas are pinned to 1: the durable world is a per-process file on the
+# PVC (single-writer). The Postgres implementation in ARCHITECTURE.md lifts
+# that constraint; until then scale vertically.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: engine-room-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: engine-room-secrets
+type: Opaque
+stringData:
+  # ENGINE_ROOM_API_KEYS: "erk_meridian_1:meridian,erk_horizon_2:horizon"
+  # ENGINE_ROOM_WHATSAPP_SECRET: "your-meta-app-secret"
+  # ANTHROPIC_API_KEY: "sk-ant-..."
+  placeholder: "set-real-values"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: engine-room
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # single-writer world on the PVC
+  selector:
+    matchLabels:
+      app: engine-room
+  template:
+    metadata:
+      labels:
+        app: engine-room
+    spec:
+      containers:
+        - name: engine-room
+          image: engine-room:latest # build with: docker build -t engine-room .
+          ports:
+            - containerPort: 3000
+          env:
+            - name: ENGINE_ROOM_DATA
+              value: /data/world.json
+            - name: ENGINE_ROOM_RATE_LIMIT
+              value: "300"
+          envFrom:
+            - secretRef:
+                name: engine-room-secrets
+                optional: true
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: engine-room-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: engine-room
+spec:
+  selector:
+    app: engine-room
+  ports:
+    - port: 80
+      targetPort: 3000

@@ -24,7 +24,7 @@ import { extract } from "./intake";
 import { generateQuote, recordVerdict } from "./quote-engine";
 import { laneFor, learn, predictEta } from "./trade-graph";
 import { generateDocuments } from "./documents";
-import { issueInvoice } from "./finance";
+import { issueInvoice, markPaid } from "./finance";
 import { agentActions, autonomyGrants, propose } from "./agent";
 
 /**
@@ -376,6 +376,19 @@ export function advanceShipment(shipmentId: string): void {
     emit("customs.cleared", s.id, "Customs entry pre-filed from document set", "INFO");
   }
   notify();
+}
+
+/**
+ * Payment collection — the customer settles an invoice. Emits
+ * payment.received; when every invoice on a settled shipment is paid, the
+ * shipment's observations flow to the trade graph (if not already learned).
+ */
+export function payInvoice(invoiceId: string): Invoice | undefined {
+  const invoice = world.invoices.find((i) => i.id === invoiceId);
+  if (!invoice || invoice.status === "PAID") return invoice;
+  markPaid(invoice);
+  notify();
+  return invoice;
 }
 
 let trackingSeq = 100;

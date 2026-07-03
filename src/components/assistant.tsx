@@ -14,6 +14,27 @@ interface Turn {
   refs?: AssistantReply["refs"];
 }
 
+/** Minimal typing for the Web Speech API (vendor-prefixed in Chromium). */
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((event: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start(): void;
+}
+
+function speechRecognition(): SpeechRecognitionLike | undefined {
+  if (typeof window === "undefined") return undefined;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+  return Ctor ? new Ctor() : undefined;
+}
+
 export function AssistantDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { world } = useWorld();
   const [turns, setTurns] = useState<Turn[]>([
@@ -24,8 +45,30 @@ export function AssistantDrawer({ open, onClose }: { open: boolean; onClose: () 
     },
   ]);
   const [input, setInput] = useState("");
+  const [listening, setListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setVoiceSupported(Boolean(speechRecognition()));
+  }, []);
+
+  function listen() {
+    const recognition = speechRecognition();
+    if (!recognition || listening) return;
+    recognition.lang = "en";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    setListening(true);
+    recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript;
+      if (transcript) setInput(transcript);
+    };
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+    recognition.start();
+  }
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 10);
@@ -91,7 +134,20 @@ export function AssistantDrawer({ open, onClose }: { open: boolean; onClose: () 
         )}
       </div>
 
-      <div className="border-t border-line p-3">
+      <div className="flex items-center gap-2 border-t border-line p-3">
+        {voiceSupported && (
+          <button
+            onClick={listen}
+            title="Voice input"
+            className={`border px-2.5 py-2 font-mono text-xs ${
+              listening
+                ? "border-magenta text-magenta"
+                : "border-line text-foam-soft hover:border-instr/50 hover:text-instr"
+            }`}
+          >
+            {listening ? "●" : "🎙"}
+          </button>
+        )}
         <input
           ref={inputRef}
           value={input}
@@ -101,7 +157,7 @@ export function AssistantDrawer({ open, onClose }: { open: boolean; onClose: () 
             if (e.key === "Escape") onClose();
           }}
           placeholder="“what's stuck” · “ENG-2026-0847” · “margin”…"
-          className="w-full border border-line bg-void px-3 py-2 font-mono text-xs text-foam outline-none placeholder:text-foam-soft/40 focus:border-instr/50"
+          className="min-w-0 flex-1 border border-line bg-void px-3 py-2 font-mono text-xs text-foam outline-none placeholder:text-foam-soft/40 focus:border-instr/50"
         />
       </div>
     </div>

@@ -30,9 +30,16 @@ Or deploy it:
 docker compose up --build   # standalone build, durable world on the engine-data volume
 ```
 
-Configure via environment: `ENGINE_ROOM_API_KEYS` (auth + one isolated tenant
-world per key), `ENGINE_ROOM_WHATSAPP_SECRET` (signed webhooks),
-`ANTHROPIC_API_KEY` (Claude-backed intake). `/api/health` serves k8s probes.
+Or to a cluster: `kubectl apply -f deploy/k8s.yaml` (PVC-backed world,
+liveness/readiness probes, secret-fed config).
+
+| Env var | Effect |
+|---|---|
+| `ENGINE_ROOM_API_KEYS` | API auth + one isolated tenant world per key (`erk_key:tenant`) |
+| `ENGINE_ROOM_WHATSAPP_SECRET` | Require signed WhatsApp webhook deliveries |
+| `ANTHROPIC_API_KEY` | Intake extraction through Claude |
+| `ENGINE_ROOM_RATE_LIMIT` | Requests/min per caller (off when unset) |
+| `ENGINE_ROOM_DATA` / `ENGINE_ROOM_PERSIST` | Snapshot path / `0` disables persistence |
 
 The app boots into a seeded world: a mid-sized Gulf forwarder ("Meridian Cargo LLC,
 Dubai") six months into running on the platform, with a live fleet, an intake inbox,

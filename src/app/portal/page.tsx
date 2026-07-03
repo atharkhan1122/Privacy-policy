@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { customers } from "@/core/store";
+import { payInvoice } from "@/core/commands";
 import { useWorld } from "@/core/use-world";
 import { DOCUMENT_LABELS } from "@/core/documents";
-import { Bar, Mono, Panel, Pipeline, StateChip, timeAgo, timeIn, usd } from "@/components/ui";
+import { Bar, Btn, Mono, Panel, Pipeline, StateChip, timeAgo, timeIn, usd } from "@/components/ui";
 
 /**
  * The Customer Portal — the counterparty side of the platform. Every business
@@ -146,10 +147,18 @@ export default function PortalPage() {
                 ))
               )}
               {openInvoices.length > 0 && (
-                <div className="border-t border-line px-4 py-2.5">
-                  <Mono className="text-magenta">
-                    ▸ Pay {usd(openInvoices.reduce((s, i) => s + i.amount, 0))} now
+                <div className="flex items-center justify-between border-t border-line px-4 py-2.5">
+                  <Mono className="text-foam-soft">
+                    {openInvoices.length} open invoice(s)
                   </Mono>
+                  <Btn
+                    tone="magenta"
+                    onClick={() => {
+                      for (const inv of openInvoices) void payInvoice(inv.id);
+                    }}
+                  >
+                    ▸ Pay {usd(openInvoices.reduce((s, i) => s + i.amount, 0))} now
+                  </Btn>
                 </div>
               )}
             </Panel>

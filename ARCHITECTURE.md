@@ -5,6 +5,25 @@ an event-driven microservice estate. The rule that governs everything: **the shi
 is the aggregate root of the entire system.** No service owns data that is not
 derivable from, or attached to, a shipment.
 
+## 0. What this repository already implements
+
+The blueprint below is not all future tense — each concern has a working,
+tested implementation in this repo, behind the same seam its production
+counterpart plugs into:
+
+| Concern | Here (working) | Production (this document) |
+|---|---|---|
+| Event backbone | In-memory typed bus + SSE stream w/ replay (`src/core/events.ts`, `/api/events/stream`) | Kafka/NATS topics, outbox pattern |
+| Persistence | Atomic full-world snapshots to disk, hydrate on boot (`src/server/persistence.ts`) | Postgres, schema-per-service |
+| Tenancy | One isolated world per API key, per-tenant files, genesis seeding | Row-level security |
+| AuthN | API keys (constant-time) + WhatsApp HMAC + opt-in rate limiting (`src/middleware.ts`) | Gateway authn/z |
+| Intake AI | Claude structured outputs w/ deterministic fallback (`src/server/claude-extract.ts`) | Multimodal LLM pipeline + review queue |
+| Margin model | Win/loss log + logistic win-probability (`src/core/quote-engine.ts`) | Trained model on the quote stream |
+| Agent | 4-notch policy engine + night shift (`src/core/agent.ts`, `runNightShift`) | Multi-agent workflow w/ RAG, same policy layer |
+| Channels | WhatsApp Business webhook (verification + signatures) | + email, SMS, push |
+| Clients | Terminal UI as a live API client (server-sync), REST, SSE | + NestJS service consumers |
+| Deploy | Dockerfile (standalone, non-root, healthcheck), compose, k8s manifest | EKS, Terraform, HPA |
+
 ## 1. System topology
 
 ```

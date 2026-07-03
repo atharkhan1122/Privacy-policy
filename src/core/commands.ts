@@ -109,6 +109,14 @@ export async function rejectAction(actionId: string): Promise<void> {
   local.forceNotify();
 }
 
+export async function payInvoice(invoiceId: string): Promise<void> {
+  if (serverMode()) {
+    await command(`/api/invoices/${invoiceId}/pay`);
+    return;
+  }
+  local.payInvoice(invoiceId);
+}
+
 export async function setAutonomy(taskType: AgentTaskType, level: AutonomyLevel): Promise<void> {
   if (serverMode()) {
     await command("/api/agent/autonomy", { taskType, level });
