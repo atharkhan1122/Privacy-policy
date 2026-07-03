@@ -44,7 +44,8 @@ email, and your first Payoneer payment. Config lives in
 | `ENGINE_ROOM_SESSION_SECRET` | HMAC key for session cookies (set a strong value when auth is on) |
 | `ENGINE_ROOM_ADMIN_KEY` | Operator key for the `/admin` console and `POST /api/billing/confirm` (sent as `x-admin-key`) |
 | `ENGINE_ROOM_PAYONEER_LINK` | Optional Payoneer "Request a Payment" link shown on the upgrade screen |
-| `ENGINE_ROOM_EMAIL_WEBHOOK` | Outbound email target for resets/verification (POST JSON); unset → operator relay outbox in `/admin` |
+| `RESEND_API_KEY` / `ENGINE_ROOM_EMAIL_FROM` | Send reset/verification email via Resend (from a verified domain) |
+| `ENGINE_ROOM_EMAIL_WEBHOOK` | Alternative: POST email as JSON to your own handler; unset (and no Resend) → operator relay outbox in `/admin` |
 | `ENGINE_ROOM_PUBLIC_URL` | Public base URL used in email links (defaults to the request origin) |
 | `ENGINE_ROOM_API_KEYS` | API auth + one isolated tenant world per key (`erk_key:tenant`) |
 | `ENGINE_ROOM_WHATSAPP_SECRET` | Require signed WhatsApp webhook deliveries |
@@ -84,9 +85,10 @@ into a signed-up product:
 - **Account lifecycle** — signup sends a verification email; users manage their
   password at **`/account`** (change password, resend verification) and recover
   a lost one via **`/forgot`** → **`/reset`** (single-use, 1-hour tokens). Email
-  goes through `ENGINE_ROOM_EMAIL_WEBHOOK` when set; with no provider, reset and
-  verification links appear in the `/admin` "Mail to relay" panel so a
-  single-node self-host still works.
+  goes through Resend (`RESEND_API_KEY`) or a JSON webhook
+  (`ENGINE_ROOM_EMAIL_WEBHOOK`); with no provider, reset and verification links
+  appear in the `/admin` "Mail to relay" panel so a single-node self-host still
+  works. A failed send also falls back to that panel, so a link is never lost.
 
 The app boots into a seeded world: a mid-sized Gulf forwarder ("Meridian Cargo LLC,
 Dubai") six months into running on the platform, with a live fleet, an intake inbox,

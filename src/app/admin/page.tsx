@@ -183,10 +183,12 @@ export default function AdminPage() {
         </Panel>
       )}
 
-      {!data.emailConfigured && data.outbox.length > 0 && (
+      {data.outbox.length > 0 && (
         <Panel title={`Mail to relay — ${data.outbox.length}`} fig="FIG.1b">
           <div className="border-b border-line px-4 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-brass">
-            No email provider set (ENGINE_ROOM_EMAIL_WEBHOOK) — relay these links to users
+            {data.emailConfigured
+              ? "Delivery failed for these — relay the links manually"
+              : "No email provider set — relay these links to users"}
           </div>
           <div className="divide-y divide-line-soft">
             {data.outbox.map((m, i) => (

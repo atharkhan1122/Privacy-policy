@@ -133,17 +133,29 @@ Then in a browser: `/welcome` sells the product, `/signup` and `/login` work,
 
 ## 6. Wire up email
 
-Password reset and email verification go through one seam:
-`ENGINE_ROOM_EMAIL_WEBHOOK`. When set, the app POSTs JSON to it:
+Password reset and email verification go through the mailer seam, which uses the
+first configured provider:
+
+**Option A — Resend (recommended, no SDK):**
+
+```bash
+RESEND_API_KEY=re_...
+ENGINE_ROOM_EMAIL_FROM="Engine Room <noreply@yourdomain.com>"   # verified domain
+```
+
+Verify your sending domain in Resend first; until then you can only send to your
+own address with the default `onboarding@resend.dev` from.
+
+**Option B — your own webhook:** set `ENGINE_ROOM_EMAIL_WEBHOOK` and the app
+POSTs JSON to it — wire it to SendGrid/Postmark/Zapier/Make/your handler:
 
 ```json
 { "to": "user@example.com", "subject": "…", "text": "…", "link": "https://…" }
 ```
 
-Point it at a provider (Resend/SendGrid/Postmark) or an automation webhook
-(Zapier/Make) that turns that payload into a sent email. **Without it**, every
-reset/verification link lands in the `/admin` → *Mail to relay* panel so you can
-send it manually — fine for a first pilot, not for scale.
+**Without either**, every reset/verification link lands in the `/admin` → *Mail
+to relay* panel so you can send it manually — fine for a first pilot, not for
+scale. A **failed** send also falls back to that panel, so a link is never lost.
 
 Set `ENGINE_ROOM_PUBLIC_URL` so the links point at your real domain.
 

@@ -14,9 +14,11 @@ beforeEach(() => {
   saved.data = process.env.ENGINE_ROOM_DATA;
   saved.auth = process.env.ENGINE_ROOM_AUTH;
   saved.hook = process.env.ENGINE_ROOM_EMAIL_WEBHOOK;
+  saved.resend = process.env.RESEND_API_KEY;
   process.env.ENGINE_ROOM_DATA = path.join(dataDir, `world-${Date.now()}-${Math.round(performance.now())}.json`);
   process.env.ENGINE_ROOM_AUTH = "1";
   delete process.env.ENGINE_ROOM_EMAIL_WEBHOOK; // exercise the operator outbox path
+  delete process.env.RESEND_API_KEY;
 });
 
 afterEach(() => {
@@ -24,6 +26,7 @@ afterEach(() => {
     ["data", "ENGINE_ROOM_DATA"],
     ["auth", "ENGINE_ROOM_AUTH"],
     ["hook", "ENGINE_ROOM_EMAIL_WEBHOOK"],
+    ["resend", "RESEND_API_KEY"],
   ] as const) {
     if (saved[k] === undefined) delete process.env[envKey];
     else process.env[envKey] = saved[k];

@@ -15,10 +15,12 @@ beforeEach(() => {
   saved.auth = process.env.ENGINE_ROOM_AUTH;
   saved.secret = process.env.ENGINE_ROOM_SESSION_SECRET;
   saved.hook = process.env.ENGINE_ROOM_EMAIL_WEBHOOK;
+  saved.resend = process.env.RESEND_API_KEY;
   process.env.ENGINE_ROOM_DATA = path.join(dataDir, `world-${Date.now()}-${Math.round(performance.now())}.json`);
   process.env.ENGINE_ROOM_AUTH = "1";
   process.env.ENGINE_ROOM_SESSION_SECRET = "test-secret";
   delete process.env.ENGINE_ROOM_EMAIL_WEBHOOK;
+  delete process.env.RESEND_API_KEY;
 });
 
 afterEach(() => {
@@ -27,6 +29,7 @@ afterEach(() => {
     ["auth", "ENGINE_ROOM_AUTH"],
     ["secret", "ENGINE_ROOM_SESSION_SECRET"],
     ["hook", "ENGINE_ROOM_EMAIL_WEBHOOK"],
+    ["resend", "RESEND_API_KEY"],
   ] as const) {
     if (saved[k] === undefined) delete process.env[envKey];
     else process.env[envKey] = saved[k];
